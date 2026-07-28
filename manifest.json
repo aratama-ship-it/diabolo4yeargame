@@ -1,0 +1,17 @@
+{
+  "name": "ディアボロ選手育成",
+  "short_name": "ディアプロ",
+  "description": "大学4年間でディアボロ選手を育てる育成ゲーム。卒業時に選手が1枚のトレーディングカードになります。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff8ec",
+  "theme_color": "#fff8ec",
+  "lang": "ja",
+  "icons": [
+    { "src": "assets/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

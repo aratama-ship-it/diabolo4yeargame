@@ -28,6 +28,10 @@
   let alumniDraftProfile = null;
   let alumniDraftIds = [];
   let alumniSearchQuery = '';
+  let registrationNameDraft = null;
+  let registrationRenameUsed = false;
+  let pendingMonthTransition = false;
+  let monthTransitionTimer = null;
 
   // --- 練習スロット選択（UI状態。null=空き、'routine'、または{genre,method}） ---
   let slotsUI = new Array(DT.DATA.SLOTS.perMonth).fill(null);
@@ -319,6 +323,9 @@
 
   function renderCreate(c) {
     candidate = c;
+    registrationNameDraft = null;
+    registrationRenameUsed = false;
+    $('#create-name').disabled = false;
     renderBackgroundButtons();
     renderCreateAlumniButton();
     $('#create-stats').replaceChildren(
@@ -343,11 +350,58 @@
   $('#btn-reroll').onclick = () => renderCreate(newCandidate());
   $('#btn-create-back').onclick = () => {
     candidate = null;
+    registrationNameDraft = null;
+    registrationRenameUsed = false;
     initTitle();
   };
-  $('#btn-start').onclick = () => {
+
+  function normalizedPlayerName(value) {
+    return (String(value || '').trim() || '主人公').slice(0, 8);
+  }
+
+  function syncRegistrationName() {
+    const name = registrationNameDraft || '主人公';
+    $('#registration-name-current').textContent = name;
+    $('#registration-name-input').value = name;
+    $('#btn-registration-rename').disabled = registrationRenameUsed;
+    $('#btn-registration-rename').textContent = registrationRenameUsed
+      ? '✓ 名前を変更済み'
+      : '✏️ 名前を変更する（あと1回）';
+  }
+
+  function closeRegistration() {
+    $('#registration-modal').classList.add('hidden');
+    $('#registration-name-edit').classList.add('hidden');
+  }
+
+  function openRegistration() {
+    if (!candidate) return;
+    if (!registrationNameDraft) registrationNameDraft = normalizedPlayerName($('#create-name').value);
+    syncRegistrationName();
+    $('#registration-name-edit').classList.add('hidden');
+    $('#registration-modal').classList.remove('hidden');
+  }
+
+  $('#btn-registration-rename').onclick = () => {
+    if (registrationRenameUsed) return;
+    $('#registration-name-edit').classList.remove('hidden');
+    $('#registration-name-input').focus();
+  };
+  $('#btn-registration-rename-ok').onclick = () => {
+    registrationNameDraft = normalizedPlayerName($('#registration-name-input').value);
+    registrationRenameUsed = true;
+    $('#create-name').value = registrationNameDraft;
+    $('#create-name').disabled = true;
+    $('#registration-name-edit').classList.add('hidden');
+    syncRegistrationName();
+  };
+  $('#btn-registration-back').onclick = closeRegistration;
+  $('#btn-start').onclick = openRegistration;
+  $('#btn-registration-confirm').onclick = () => {
+    if (!candidate) return;
     state = candidate;
-    state.name = ($('#create-name').value || '').trim() || '主人公';
+    state.name = registrationNameDraft || normalizedPlayerName($('#create-name').value);
+    closeRegistration();
     DT.state.save(state);
     renderHome([]);
   };
@@ -650,6 +704,8 @@
     zukan.onclick = () => { closeSettings(); openZukan(); };
     const alumni = el('button', '', '🌸 卒業生名簿');
     alumni.onclick = () => { closeSettings(); openAlumniRoster(); };
+    const backup = el('button', '', '💾 バックアップ');
+    backup.onclick = renderSettingsBackup;
     const retire = el('button', 'retire', 'リタイア（最初から）');
     retire.onclick = renderSettingsConfirm;
     const items = [
@@ -658,8 +714,80 @@
       zukan
     ];
     if (SHORT) items.push(alumni);
-    items.push(retire);
+    items.push(backup, retire);
     $('#settings-body').replaceChildren(...items);
+  }
+
+  // ---- バックアップ（2026-07-16）: 図鑑・記録・卒業生・セーブをJSONで書き出し／復元 ----
+  // localStorageはブラウザのデータ削除やiOSのストレージ自動削除で消えるため、その保険。
+  function renderSettingsBackup() {
+    const b = DT.state.exportBackup();
+    const s = b.summary;
+    const note = el('p', 'settings-note',
+      '図鑑や記録はこの端末のブラウザに保存されています。データ削除などで消えるため、時々バックアップを保存してください。');
+    const now = el('p', 'settings-note backup-now',
+      '現在のデータ: カード ' + s.cards + '種／記録 ' + s.records + '件' +
+      (s.shortCards || s.shortRecords ? '（短縮版: カード ' + s.shortCards + '種／記録 ' + s.shortRecords + '件）' : ''));
+    const save = el('button', 'primary', '⬇️ バックアップを書き出す');
+    save.onclick = () => {
+      const blob = new Blob([JSON.stringify(b)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const d = new Date();
+      const p2 = n => String(n).padStart(2, '0');
+      a.download = 'diabolo-trainer-backup-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+    // 読み込み: ファイル選択→検証→中身を見せて確認→置き換え復元
+    const file = el('input', 'backup-file');
+    file.type = 'file';
+    file.accept = 'application/json,.json';
+    file.onchange = () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const parsed = DT.state.parseBackup(String(reader.result));
+        if (!parsed.ok) { renderBackupError(parsed.error); return; }
+        renderBackupConfirm(parsed);
+      };
+      reader.onerror = () => renderBackupError('ファイルを読み込めませんでした');
+      reader.readAsText(f);
+    };
+    const load = el('button', '', '⬆️ バックアップから復元');
+    load.onclick = () => file.click();
+    const back = el('button', '', '戻る');
+    back.onclick = renderSettingsMain;
+    $('#settings-body').replaceChildren(note, now, save, load, file, back);
+  }
+
+  function renderBackupError(msg) {
+    const warn = el('p', 'settings-note cond-warn', '⚠ ' + msg);
+    const back = el('button', 'primary', '戻る');
+    back.onclick = renderSettingsBackup;
+    $('#settings-body').replaceChildren(warn, back);
+  }
+
+  function renderBackupConfirm(parsed) {
+    const s = parsed.summary;
+    const when = parsed.backup.exportedAt ? String(parsed.backup.exportedAt).slice(0, 10) : '不明';
+    const info = el('p', 'settings-note',
+      'このバックアップ（' + when + '）を復元します。' +
+      (s ? '\n内容: カード ' + s.cards + '種／記録 ' + s.records + '件' : ''));
+    const warn = el('p', 'settings-note cond-warn',
+      '⚠ 現在の図鑑・記録・セーブはすべて上書きされます（合体ではありません）。');
+    const yes = el('button', 'retire', 'はい、復元する');
+    yes.onclick = () => {
+      DT.state.importBackup(parsed.backup);
+      const done = el('p', 'settings-note', '✅ 復元しました。タイトルに戻ります。');
+      const ok = el('button', 'primary', 'OK');
+      ok.onclick = () => { closeSettings(); state = null; initTitle(); };
+      $('#settings-body').replaceChildren(done, ok);
+    };
+    const no = el('button', 'primary', 'やめる');
+    no.onclick = renderSettingsBackup;
+    $('#settings-body').replaceChildren(info, warn, no, yes);
   }
   function renderSettingsConfirm() {
     const warn = el('p', 'settings-note cond-warn', '本当にリタイアしますか？ 現在のセーブは消え、タイトルに戻ります。');
@@ -1025,6 +1153,7 @@
   //                → ③練習後スロット(runPostSlot: 大会・通常版の固定イベント) → finishTurn
   //   ショート版は奇数月のイベントをrunPreSlotの1枠へ統合。大会は別枠、怪我・SNSは練習の一部（枠外）。
   const pushMsgs = arr => arr.forEach(m => pendingMessages.push(m));
+  const MONTH_TRANSITION_MS = 1500;
 
   function startTurn(actionId, slots) {
     pendingMessages = [];
@@ -1349,6 +1478,8 @@
       state.logHistory.push({ turn: state.turn - 1, messages: histMsgs });
     }
     DT.state.save(state);
+    // state.turnはendTurnで次月へ進んでいる。結果画面の確認後に、次月表示を一度だけ挟む。
+    pendingMonthTransition = state.status === 'playing';
     pendingContest = null;
     pendingMessages = [];
     // 怪我判定は練習直後(rollInjury)に移したため、ここでは分岐不要
@@ -1362,6 +1493,11 @@
 
   function afterTurn(logs) {
     if (state.status !== 'playing') { renderEnding(); return; }
+    if (pendingMonthTransition) {
+      pendingMonthTransition = false;
+      showMonthTransition(state.turn, () => afterTurn(logs));
+      return;
+    }
     // 偶数月の行動後は、そのまま次の奇数月をイベント専用月として自動処理する。
     // セーブから奇数月を再開した場合も、行動画面を出さず同じ経路へ戻す。
     if (SHORT && DT.shortMode.isEventMonth(state.turn)) {
@@ -1375,6 +1511,33 @@
     // 通常版は従来どおり3年生4月、ショート版は次の奇数月（5月）のイベント枠で提示する。
     if (!SHORT && state.turn === 25 && !state.retireOfferSeen) { renderRetireOffer(logs); return; }
     renderHomeWithPopups(logs);
+  }
+
+  function monthTransitionSub(turn) {
+    if (SHORT) {
+      return DT.shortMode.isEventMonth(turn)
+        ? 'EVENT MONTH · 部の仲間とできごとが進む'
+        : 'PRACTICE MONTH · 何を伸ばすか決めよう';
+    }
+    return 'NEXT MONTH · 育成を続けよう';
+  }
+
+  function showMonthTransition(turn, onDone) {
+    const overlay = $('#month-transition');
+    clearTimeout(monthTransitionTimer);
+    $('#month-transition-label').textContent = DT.engine.turnLabel(turn);
+    $('#month-transition-sub').textContent = monthTransitionSub(turn);
+    overlay.classList.remove('hidden', 'is-active');
+    overlay.setAttribute('aria-hidden', 'false');
+    // 同じクラスの連続表示でもプログレスアニメーションを先頭から再生する。
+    void overlay.offsetWidth;
+    overlay.classList.add('is-active');
+    monthTransitionTimer = setTimeout(() => {
+      overlay.classList.remove('is-active');
+      overlay.classList.add('hidden');
+      overlay.setAttribute('aria-hidden', 'true');
+      onDone();
+    }, MONTH_TRANSITION_MS);
   }
 
   function renderHomeWithPopups(logs) {
@@ -2495,6 +2658,7 @@
   document.querySelectorAll('[data-close-alumni]').forEach(b => { b.onclick = closeAlumniRoster; });
   document.querySelectorAll('[data-close-radar]').forEach(b => { b.onclick = closeRadar; });
   document.querySelectorAll('[data-close-log]').forEach(b => { b.onclick = closeLog; });
+  document.querySelectorAll('[data-close-registration]').forEach(b => { b.onclick = closeRegistration; });
   $('#btn-records').onclick = openRecords;
   $('#btn-alumni').onclick = openAlumniRoster;
   $('#btn-alumni-save').onclick = saveAlumniRoster;
@@ -2686,6 +2850,11 @@
   if (QUERY_PARAMS.get('gallery')) {
     initTitle();
     renderCardGallery();
+  } else if (DEV && QUERY_PARAMS.get('preview') === 'transition') {
+    state = DT.state.newCharacter(() => 0.5, 'highschool', GAME_MODE);
+    state.turn = 2;
+    initTitle();
+    showMonthTransition(state.turn, initTitle);
   } else if (DEV && QUERY_PARAMS.get('preview') === 'create') {
     initTitle();
     renderCreate(newCandidate());

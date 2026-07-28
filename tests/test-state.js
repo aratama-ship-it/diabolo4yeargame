@@ -211,4 +211,67 @@ test('collection: 追加→ロード→重複は枚数/自己ベスト更新（�
   assert.deepStrictEqual(DT.state.loadCollection(store), {});
 });
 
+// ---- バックアップ（2026-07-16）----
+
+function memStore() {
+  return {
+    data: {},
+    setItem(k, v) { this.data[k] = v; },
+    getItem(k) { return (k in this.data) ? this.data[k] : null; },
+    removeItem(k) { delete this.data[k]; }
+  };
+}
+
+test('backup: 書き出し→別ストレージへ復元で図鑑・記録が一致する', () => {
+  const src = memStore();
+  DT.state.addToCollection({ id: 'sp_ajdc', title: '日本の頂点', rank: 'S', cp: 800, totalPoints: 900 }, 1, src);
+  DT.state.addToCollection({ id: 'mx_C_showman', title: 'ムードメーカー', rank: 'C', cp: 500, totalPoints: 300 }, 2, src);
+  DT.state.addRecord({ name: 'テスト', totalPoints: 900, rank: 'S' }, src);
+  const b = DT.state.exportBackup(src);
+  assert.strictEqual(b.format, DT.state.BACKUP_FORMAT);
+  assert.strictEqual(b.summary.cards, 2);
+  assert.strictEqual(b.summary.records, 1);
+
+  // 別端末に見立てた空ストレージへ復元
+  const dst = memStore();
+  const parsed = DT.state.parseBackup(JSON.stringify(b));
+  assert.strictEqual(parsed.ok, true);
+  DT.state.importBackup(parsed.backup, dst);
+  assert.deepStrictEqual(Object.keys(DT.state.loadCollection(dst)).sort(), ['mx_C_showman', 'sp_ajdc']);
+  assert.strictEqual(DT.state.loadCollection(dst).sp_ajdc.bestCp, 800);
+  assert.strictEqual(DT.state.loadRecords(dst)[0].name, 'テスト');
+});
+
+test('backup: 復元は置き換え（バックアップに無いキーは消える）', () => {
+  const s = memStore();
+  DT.state.addToCollection({ id: 'sp_ajdc', cp: 800 }, 1, s);
+  const b = DT.state.exportBackup(s); // 図鑑のみのバックアップ
+  DT.state.addRecord({ name: 'あとから', totalPoints: 100 }, s); // 書き出し後に増えた記録
+  DT.state.importBackup(DT.state.parseBackup(JSON.stringify(b)).backup, s);
+  assert.strictEqual(DT.state.loadRecords(s).length, 0, '書き出し後の記録は復元で消える（置き換え仕様）');
+  assert.ok(DT.state.loadCollection(s).sp_ajdc);
+});
+
+test('backup: 不正なファイルは復元せずエラーを返す', () => {
+  assert.strictEqual(DT.state.parseBackup('{壊れ').ok, false);
+  assert.strictEqual(DT.state.parseBackup(JSON.stringify({ format: 'other-app', data: {} })).ok, false);
+  assert.strictEqual(DT.state.parseBackup(JSON.stringify({ format: DT.state.BACKUP_FORMAT, version: 999, data: { x: 'y' } })).ok, false);
+  assert.strictEqual(DT.state.parseBackup(JSON.stringify({ format: DT.state.BACKUP_FORMAT, version: 1, data: {} })).ok, false);
+  // 未知キーは無視される（他サイトのキーを書き込まない）
+  const evil = { format: DT.state.BACKUP_FORMAT, version: 1, data: { 'evil-key': 'x', [DT.state.COLLECTION_KEY]: '{}' } };
+  const p = DT.state.parseBackup(JSON.stringify(evil));
+  assert.strictEqual(p.ok, true);
+  assert.deepStrictEqual(Object.keys(p.backup.data), [DT.state.COLLECTION_KEY]);
+});
+
+test('backup: 短縮版のデータも対象に含まれる', () => {
+  const s = memStore();
+  DT.state.addToCollection({ id: 'mx_E_showman', cp: 100 }, 1, s, 'short');
+  const b = DT.state.exportBackup(s);
+  assert.strictEqual(b.summary.shortCards, 1);
+  const dst = memStore();
+  DT.state.importBackup(DT.state.parseBackup(JSON.stringify(b)).backup, dst);
+  assert.ok(DT.state.loadCollection(dst, 'short').mx_E_showman);
+});
+
 summary();

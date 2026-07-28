@@ -4,10 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ディアボロ選手育成</title>
+<!-- PWA(2026-07-16): ホーム画面に追加するとスタンドアロン起動になり、iOSのストレージ自動削除の
+     対象外になる＝図鑑・記録が消えにくくなる。Service Workerは?v=キャッシュ運用と衝突するため入れていない -->
+<link rel="manifest" href="manifest.json?v=20260728a">
+<meta name="theme-color" content="#fff8ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ディアプロ">
+<link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png?v=20260728a">
+<link rel="icon" href="assets/pwa/icon-192.png?v=20260728a" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20260724a">
+<link rel="stylesheet" href="css/style.css?v=20260728a">
 </head>
 <body>
 <div id="app">
@@ -18,6 +27,16 @@
       <h1 id="title-main">ディアボロ選手育成</h1>
       <p class="subtitle" id="title-subtitle">〜大学4年間、ディアボロに懸けろ〜</p>
       <p class="title-manual" id="title-manual">大学4年間でディアボロ選手を育てるゲームです。毎月、練習・勉強・休養を選びます。練習はジャンルと内容を組み合わせて3枠決めます。疲労がたまると失敗や怪我のリスクが上がるので注意。大会の成績と通算ポイントで、卒業時の評価が決まります。</p>
+      <div class="title-confetti" aria-hidden="true">
+        <i class="tc-1"></i><i class="tc-2"></i><i class="tc-3"></i><i class="tc-4"></i>
+        <i class="tc-5"></i><i class="tc-6"></i><i class="tc-7"></i><i class="tc-8"></i>
+        <i class="tc-9"></i><i class="tc-10"></i><i class="tc-11"></i><i class="tc-12"></i>
+        <i class="tc-13"></i><i class="tc-14"></i><i class="tc-15"></i><i class="tc-16"></i>
+        <i class="tc-17"></i><i class="tc-18"></i><i class="tc-19"></i><i class="tc-20"></i>
+      </div>
+      <div class="title-art-stage" aria-hidden="true">
+        <img src="assets/title/title-card-combo-trail-v4-people-3d.png" alt="">
+      </div>
       <button id="btn-new" class="primary">はじめから</button>
       <button id="btn-continue">つづきから</button>
       <button id="btn-mode-switch">⚡ ショート版（24ターン）</button>
@@ -34,7 +53,7 @@
       </div>
       <p class="subtitle">今年の新入生はこんな選手！</p>
       <div class="card">
-        <label for="create-name" class="subtitle">選手の名前（8文字まで）</label>
+        <label for="create-name" class="subtitle">選手の仮名（8文字まで・登録前に最終変更可）</label>
         <input id="create-name" maxlength="8" placeholder="主人公">
       </div>
       <div class="card">
@@ -149,6 +168,49 @@
     <button class="nav-btn" id="nav-detail"><span class="nav-icon">📊</span>詳細</button>
     <button class="nav-btn" id="nav-settings"><span class="nav-icon">⚙️</span>設定</button>
   </nav>
+
+  <!-- ======== 月送りトランジション（次月へ進む実感をつくる短いローディング） ======== -->
+  <div id="month-transition" class="month-transition hidden" aria-hidden="true">
+    <div class="month-transition-card">
+      <div class="month-transition-kicker">NEXT MONTH</div>
+      <div class="month-transition-diabolo" aria-hidden="true">
+        <span class="month-transition-cup left"></span>
+        <span class="month-transition-axle"></span>
+        <span class="month-transition-cup right"></span>
+      </div>
+      <div class="month-transition-label" id="month-transition-label"></div>
+      <div class="month-transition-sub" id="month-transition-sub"></div>
+      <div class="month-transition-progress" aria-hidden="true"><span></span></div>
+    </div>
+  </div>
+
+  <!-- ======== 選手登録の最終確認（登録直前に名前を一度だけ差し替え可能） ======== -->
+  <div id="registration-modal" class="modal center hidden">
+    <div class="modal-backdrop" data-close-registration></div>
+    <div class="modal-card popup-card registration-card">
+      <div class="modal-head">
+        <span class="modal-title">🪪 選手登録の最終確認</span>
+        <button class="modal-close" data-close-registration aria-label="スカウト画面へ戻る">×</button>
+      </div>
+      <div class="popup-body">
+        <p class="registration-lead">登録後、主人公の名前は変更できません。ここで一度だけ最終変更できます。</p>
+        <div class="registration-name-readout">
+          <span>登録する名前</span>
+          <b id="registration-name-current"></b>
+        </div>
+        <button id="btn-registration-rename" class="registration-rename">✏️ 名前を変更する（あと1回）</button>
+        <div id="registration-name-edit" class="registration-name-edit hidden">
+          <label for="registration-name-input">新しい名前（8文字まで）</label>
+          <input id="registration-name-input" maxlength="8" placeholder="主人公">
+          <button id="btn-registration-rename-ok">この名前にする</button>
+        </div>
+      </div>
+      <div class="registration-actions">
+        <button id="btn-registration-back">スカウトへ戻る</button>
+        <button id="btn-registration-confirm" class="primary">この名前で選手登録</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ======== 今後の予定モーダル（次のイベントバナーのタップで開く） ======== -->
   <div id="schedule-modal" class="modal hidden">
@@ -306,15 +368,15 @@
   </div>
 </aside>
 
-<script src="js/data.js?v=20260724b"></script>
-<script src="js/short-mode.js?v=20260723a"></script>
-<script src="js/state.js?v=20260723f"></script>
-<script src="js/engine.js?v=20260723c"></script>
-<script src="js/contest.js?v=20260723c"></script>
-<script src="js/events.js?v=20260724b"></script>
-<script src="js/ending.js?v=20260716d"></script>
-<script src="js/cards.js?v=20260716d"></script>
-<script src="js/radar.js?v=20260716d"></script>
-<script src="js/app.js?v=20260724b"></script>
+<script src="js/data.js?v=20260728a"></script>
+<script src="js/short-mode.js?v=20260728a"></script>
+<script src="js/state.js?v=20260728a"></script>
+<script src="js/engine.js?v=20260728a"></script>
+<script src="js/contest.js?v=20260728a"></script>
+<script src="js/events.js?v=20260728a"></script>
+<script src="js/ending.js?v=20260728a"></script>
+<script src="js/cards.js?v=20260728a"></script>
+<script src="js/radar.js?v=20260728a"></script>
+<script src="js/app.js?v=20260728a"></script>
 </body>
 </html>

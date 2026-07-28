@@ -335,7 +335,70 @@
     return { isNew: false, count: prev.count, cpImproved: cpImproved, ptImproved: ptImproved, bestCp: prev.bestCp, bestPt: prev.bestPt };
   }
 
+  // --- バックアップ（2026-07-16）: localStorageは端末/ブラウザ単位で、データ削除やiOSの
+  // ストレージ自動削除で消える。50周かけて集める図鑑を守るため、全キーをJSONで書き出し・復元する。
+  // 対象は「保存している全キー」（標準/短縮の セーブ・記録・図鑑・卒業生）。
+  const BACKUP_FORMAT = 'diabolo-trainer-backup';
+  const BACKUP_VERSION = 1;
+  const BACKUP_KEYS = [
+    SAVE_KEY, SHORT_SAVE_KEY, RECORDS_KEY, SHORT_RECORDS_KEY,
+    COLLECTION_KEY, SHORT_COLLECTION_KEY, ALUMNI_KEY, SHORT_ALUMNI_KEY
+  ];
+
+  // 現在の全データを1つのオブジェクトにまとめて返す（保存が無いキーは含めない）
+  function exportBackup(storage) {
+    const s = storage || global.localStorage;
+    const data = {};
+    BACKUP_KEYS.forEach(k => {
+      const raw = s.getItem(k);
+      if (raw !== null && raw !== undefined) data[k] = raw; // 生文字列のまま保持（解釈しない＝壊さない）
+    });
+    const col = loadCollection(s);
+    const shortCol = loadCollection(s, 'short');
+    return {
+      format: BACKUP_FORMAT,
+      version: BACKUP_VERSION,
+      exportedAt: new Date().toISOString(),
+      // 復元前に中身を確認できるようにするサマリ（復元処理では使わない・表示専用）
+      summary: {
+        cards: Object.keys(col).length,
+        shortCards: Object.keys(shortCol).length,
+        records: loadRecords(s).length,
+        shortRecords: loadRecords(s, 'short').length
+      },
+      data: data
+    };
+  }
+
+  // バックアップの検証。問題なければ {ok:true, backup, summary}、駄目なら {ok:false, error}
+  function parseBackup(text) {
+    let obj;
+    try {
+      obj = JSON.parse(text);
+    } catch (e) {
+      return { ok: false, error: 'ファイルを読み取れませんでした（JSONとして不正です）' };
+    }
+    if (!obj || obj.format !== BACKUP_FORMAT) return { ok: false, error: 'このゲームのバックアップファイルではありません' };
+    if (!obj.data || typeof obj.data !== 'object') return { ok: false, error: 'バックアップの中身が壊れています' };
+    if (obj.version > BACKUP_VERSION) return { ok: false, error: '新しいバージョンのバックアップです。アプリを更新してください' };
+    // 未知のキーは無視し、既知キーだけを対象にする（他サイトのデータを書き込まないため）
+    const known = {};
+    BACKUP_KEYS.forEach(k => { if (typeof obj.data[k] === 'string') known[k] = obj.data[k]; });
+    if (Object.keys(known).length === 0) return { ok: false, error: '復元できるデータが入っていません' };
+    return { ok: true, backup: Object.assign({}, obj, { data: known }), summary: obj.summary || null };
+  }
+
+  // 復元（置き換え）: 現在のデータを消してからバックアップの内容を書き込む。
+  // ※マージではない（figures/記録の統合ルールが複雑なため、まずは予測しやすい丸ごと復元にした）
+  function importBackup(backup, storage) {
+    const s = storage || global.localStorage;
+    BACKUP_KEYS.forEach(k => s.removeItem(k));
+    Object.keys(backup.data).forEach(k => s.setItem(k, backup.data[k]));
+    return { restored: Object.keys(backup.data).length };
+  }
+
   DT.state = {
+    exportBackup, parseBackup, importBackup, BACKUP_KEYS, BACKUP_FORMAT, BACKUP_VERSION,
     newCharacter, save, load, clear, SAVE_KEY, SHORT_SAVE_KEY,
     normalizeProgression,
     loadRecords, addRecord, RECORDS_KEY, SHORT_RECORDS_KEY,
