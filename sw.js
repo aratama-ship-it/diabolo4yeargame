@@ -13,7 +13,7 @@
  */
 'use strict';
 
-const CACHE_VERSION = 'v20260728b';
+const CACHE_VERSION = 'v20260801a';
 const CACHE_NAME = 'diapro-' + CACHE_VERSION;
 
 // オフライン初回起動に最低限必要なもの。取得に失敗しても install は成功させる（配信構成の差異に強くする）

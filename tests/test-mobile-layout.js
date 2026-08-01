@@ -107,10 +107,15 @@ test('MONTH TRANSITION: ディアボロは学年の数だけ並ぶ（1年生=1�
   assert.match(app, /const MONTH_TRANSITION_MAX_DIABOLO\s*=\s*4/);
   assert.match(app, /renderMonthTransitionDiabolo\(turn\)/);
   assert.match(html, /id="month-transition-diabolo"/);
-  // 個数ごとの縮小は実寸(CSS変数)で行う。transform:scaleだとレイアウト幅が残りカードから溢れる
-  assert.match(css, /\.month-transition-diabolo\[data-count="4"\][^}]*--cup:/);
-  assert.match(css, /\.month-transition-cup\s*\{[\s\S]*?width: var\(--cup\)/);
-  assert.doesNotMatch(css, /\.month-transition-diabolo\[data-count="[234]"\] \.mt-dia \{ transform: scale/);
+  // TIDCローダーのオマージュ: 2本のスティックと紐の装置をSVGで描き、7コマ×100msでコマ送りする
+  assert.match(app, /const MT_FRAMES\s*=\s*7/);
+  assert.match(app, /const MT_FRAME_MS\s*=\s*100/);
+  assert.match(app, /function monthTransitionPose\(n, f\)/);
+  assert.match(app, /class: 'mt-string'/);
+  assert.match(app, /class: 'mt-stick'/);
+  // 非表示になったらコマ送りを止める（タイマーを残さない）
+  assert.match(app, /stopMonthTransitionFrames\(\);[\s\S]{0,120}overlay\.classList\.add\('hidden'\)/);
+  assert.match(css, /\.mt-string\s*\{[^}]*stroke:/);
 });
 
 summary();

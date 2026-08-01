@@ -1522,23 +1522,81 @@
     return 'NEXT MONTH · 育成を続けよう';
   }
 
-  // 切替演出のディアボロは学年の数だけ並べる（1年生=1個…4年生=4個）。
-  // 学年はturnLabelと同じ式で算出し、表示中の「N年生」と必ず一致させる。
+  // ---- 切替演出のディアボロ（TIDCローディングへのオマージュ・2026-08-01） ----
+  // 東京国際ディアボロ大会(TIDC)のサイトのローダーは「2本のスティックと1本の紐に複数のディアボロが乗り、
+  // 低フレームのコマ撮り調で回り続ける」線画だった。その"装置と間合い"を自分の絵柄で描き直している
+  // （素材・コードは複製せず、形もカクつきの周期もこのファイルで独自に組み立てている）。
+  // 個数は学年連動（1年生=1個…4年生=4個）。学年はturnLabelと同じ式で出し、表示中の「N年生」と必ず一致させる。
   const MONTH_TRANSITION_MAX_DIABOLO = 4;
+  const MT_FRAMES = 7;        // TIDCのGIFと同じ7コマ
+  const MT_FRAME_MS = 100;    // 1コマ100ms（0.7秒で一巡）＝あのカクカクした間合い
+  const MT_VIEW = { w: 200, h: 74 };
+  let monthTransitionFrameTimer = null;
+
+  // fコマ目・n個ぶんの配置を返す（純粋な計算。描画はrenderMonthTransitionSceneが行う）
+  function monthTransitionPose(n, f) {
+    const tipL = { x: 26, y: 24 }, tipR = { x: 174, y: 24 }; // スティックの先端
+    const scale = [1, .9, .78, .68][n - 1] || .68;
+    const spanL = 54, spanR = 146;
+    const dia = [];
+    for (let i = 0; i < n; i++) {
+      const x = n === 1 ? 100 : Math.round(spanL + (spanR - spanL) * (i / (n - 1)));
+      // 空中の1個は順番に入れ替わる（投げ上げているように見せる）。1個のときは常に紐の上
+      const airborne = n > 1 && (f % n) === i;
+      const wave = Math.round(Math.sin((f + i * 1.7) * 0.9) * 4);
+      // 紐に乗っている分は互い違いに沈ませ、TIDCのようなジグザグの紐にする
+      const zig = (i % 2 === 0) ? 6 : -6;
+      dia.push({ x: x, y: airborne ? 16 + Math.round(wave / 2) : 52 + zig + wave, scale: airborne ? scale * 1.05 : scale, airborne: airborne });
+    }
+    // 紐は「左スティック→紐に乗っているディアボロ→右スティック」を順につなぐ
+    const onString = dia.filter(d => !d.airborne);
+    const points = [tipL].concat(onString.map(d => ({ x: d.x, y: d.y }))).concat([tipR]);
+    return { tipL: tipL, tipR: tipR, dia: dia, points: points };
+  }
+
+  // 描画には既存の svgEl(tag, attrs, children) を使う（レーダーチャートと共用）
+  function renderMonthTransitionScene(box, n, f) {
+    const p = monthTransitionPose(n, f);
+    const svg = svgEl('svg', { viewBox: '0 0 ' + MT_VIEW.w + ' ' + MT_VIEW.h, class: 'mt-svg' });
+    // スティック2本（持ち手側に小さなフックを付ける）＋紐
+    [[p.tipL, -1], [p.tipR, 1]].forEach(([tip, dir]) => {
+      svg.appendChild(svgEl('path', {
+        class: 'mt-stick',
+        d: 'M' + (tip.x + dir * 7) + ' ' + (tip.y + 36) + ' L' + tip.x + ' ' + tip.y +
+           ' l' + (dir * -9) + ' -3'
+      }));
+    });
+    svg.appendChild(svgEl('polyline', { class: 'mt-string', points: p.points.map(q => q.x + ',' + q.y).join(' ') }));
+    // ディアボロ（うちの絵柄のまま: 左右のカップ＋中央軸）
+    p.dia.forEach(d => {
+      const g = svgEl('g', { class: 'mt-dia' + (d.airborne ? ' is-air' : ''), transform: 'translate(' + d.x + ' ' + d.y + ') scale(' + d.scale + ')' });
+      g.appendChild(svgEl('path', { class: 'mt-cup', d: 'M-15 -11 L-4 0 L-15 11 Z' }));
+      g.appendChild(svgEl('path', { class: 'mt-cup', d: 'M15 -11 L4 0 L15 11 Z' }));
+      g.appendChild(svgEl('rect', { class: 'mt-axle', x: -4, y: -3.5, width: 8, height: 7, rx: 2.5 }));
+      svg.appendChild(g);
+    });
+    box.replaceChildren(svg);
+  }
+
+  function stopMonthTransitionFrames() {
+    if (monthTransitionFrameTimer) { clearInterval(monthTransitionFrameTimer); monthTransitionFrameTimer = null; }
+  }
+
   function renderMonthTransitionDiabolo(turn) {
     const box = $('#month-transition-diabolo');
     if (!box) return;
     const year = Math.min(MONTH_TRANSITION_MAX_DIABOLO, Math.max(1, Math.ceil(turn / 12)));
     box.dataset.count = String(year);
-    const items = [];
-    for (let i = 0; i < year; i++) {
-      const dia = el('span', 'mt-dia');
-      dia.appendChild(el('span', 'month-transition-cup left'));
-      dia.appendChild(el('span', 'month-transition-axle'));
-      dia.appendChild(el('span', 'month-transition-cup right'));
-      items.push(dia);
-    }
-    box.replaceChildren(...items);
+    stopMonthTransitionFrames();
+    let f = 0;
+    renderMonthTransitionScene(box, year, f);
+    // 動きを減らす設定のときは1コマ目で静止させる
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+    monthTransitionFrameTimer = setInterval(() => {
+      f = (f + 1) % MT_FRAMES;
+      renderMonthTransitionScene(box, year, f);
+    }, MT_FRAME_MS);
   }
 
   function showMonthTransition(turn, onDone) {
@@ -1553,6 +1611,7 @@
     void overlay.offsetWidth;
     overlay.classList.add('is-active');
     monthTransitionTimer = setTimeout(() => {
+      stopMonthTransitionFrames(); // 非表示中にコマ送りを回し続けない
       overlay.classList.remove('is-active');
       overlay.classList.add('hidden');
       overlay.setAttribute('aria-hidden', 'true');
