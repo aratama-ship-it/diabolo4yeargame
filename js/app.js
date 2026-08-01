@@ -1522,9 +1522,29 @@
     return 'NEXT MONTH · 育成を続けよう';
   }
 
+  // 切替演出のディアボロは学年の数だけ並べる（1年生=1個…4年生=4個）。
+  // 学年はturnLabelと同じ式で算出し、表示中の「N年生」と必ず一致させる。
+  const MONTH_TRANSITION_MAX_DIABOLO = 4;
+  function renderMonthTransitionDiabolo(turn) {
+    const box = $('#month-transition-diabolo');
+    if (!box) return;
+    const year = Math.min(MONTH_TRANSITION_MAX_DIABOLO, Math.max(1, Math.ceil(turn / 12)));
+    box.dataset.count = String(year);
+    const items = [];
+    for (let i = 0; i < year; i++) {
+      const dia = el('span', 'mt-dia');
+      dia.appendChild(el('span', 'month-transition-cup left'));
+      dia.appendChild(el('span', 'month-transition-axle'));
+      dia.appendChild(el('span', 'month-transition-cup right'));
+      items.push(dia);
+    }
+    box.replaceChildren(...items);
+  }
+
   function showMonthTransition(turn, onDone) {
     const overlay = $('#month-transition');
     clearTimeout(monthTransitionTimer);
+    renderMonthTransitionDiabolo(turn);
     $('#month-transition-label').textContent = DT.engine.turnLabel(turn);
     $('#month-transition-sub').textContent = monthTransitionSub(turn);
     overlay.classList.remove('hidden', 'is-active');

@@ -4,19 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ディアボロ選手育成</title>
-<!-- PWA(2026-07-16): ホーム画面に追加するとスタンドアロン起動になり、iOSのストレージ自動削除の
-     対象外になる＝図鑑・記録が消えにくくなる。Service Workerは?v=キャッシュ運用と衝突するため入れていない -->
-<link rel="manifest" href="manifest.json?v=20260728a">
+<!-- PWA: ホーム画面に追加するとスタンドアロン起動になり、iOSのストレージ自動削除の対象外になる
+     ＝図鑑・記録が消えにくくなる。Service Worker(sw.js)はネットワーク優先で、
+     オンライン時は常に最新を返すため `?v=` のキャッシュ破棄運用と両立する（オフライン時のみキャッシュ配信） -->
+<link rel="manifest" href="manifest.json?v=20260728b">
 <meta name="theme-color" content="#fff8ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ディアプロ">
-<link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png?v=20260728a">
-<link rel="icon" href="assets/pwa/icon-192.png?v=20260728a" type="image/png">
+<link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png?v=20260728b">
+<link rel="icon" href="assets/pwa/icon-192.png?v=20260728b" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20260728a">
+<link rel="stylesheet" href="css/style.css?v=20260728b">
 </head>
 <body>
 <div id="app">
@@ -173,11 +174,8 @@
   <div id="month-transition" class="month-transition hidden" aria-hidden="true">
     <div class="month-transition-card">
       <div class="month-transition-kicker">NEXT MONTH</div>
-      <div class="month-transition-diabolo" aria-hidden="true">
-        <span class="month-transition-cup left"></span>
-        <span class="month-transition-axle"></span>
-        <span class="month-transition-cup right"></span>
-      </div>
+      <!-- ディアボロは学年の数だけ並べる（1年生=1個…4年生=4個）。中身はshowMonthTransitionが生成 -->
+      <div class="month-transition-diabolo" id="month-transition-diabolo" aria-hidden="true"></div>
       <div class="month-transition-label" id="month-transition-label"></div>
       <div class="month-transition-sub" id="month-transition-sub"></div>
       <div class="month-transition-progress" aria-hidden="true"><span></span></div>
@@ -368,15 +366,24 @@
   </div>
 </aside>
 
-<script src="js/data.js?v=20260728a"></script>
-<script src="js/short-mode.js?v=20260728a"></script>
-<script src="js/state.js?v=20260728a"></script>
-<script src="js/engine.js?v=20260728a"></script>
-<script src="js/contest.js?v=20260728a"></script>
-<script src="js/events.js?v=20260728a"></script>
-<script src="js/ending.js?v=20260728a"></script>
-<script src="js/cards.js?v=20260728a"></script>
-<script src="js/radar.js?v=20260728a"></script>
-<script src="js/app.js?v=20260728a"></script>
+<script src="js/data.js?v=20260728b"></script>
+<script src="js/short-mode.js?v=20260728b"></script>
+<script src="js/state.js?v=20260728b"></script>
+<script src="js/engine.js?v=20260728b"></script>
+<script src="js/contest.js?v=20260728b"></script>
+<script src="js/events.js?v=20260728b"></script>
+<script src="js/ending.js?v=20260728b"></script>
+<script src="js/cards.js?v=20260728b"></script>
+<script src="js/radar.js?v=20260728b"></script>
+<script src="js/app.js?v=20260728b"></script>
+<script>
+  // Service Worker登録（PWA: オフライン起動＋インストール可能に）。
+  // file://で直接開いた場合やSW非対応環境では何もしない。失敗してもゲーム本体には影響させない。
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js?v=20260728b').catch(function () { /* 登録失敗は無視 */ });
+    });
+  }
+</script>
 </body>
 </html>

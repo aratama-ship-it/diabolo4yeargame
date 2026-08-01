@@ -100,4 +100,17 @@ test('NAVIGATION: 卒業生名簿はタイトルではなく新入生スカウ�
   assert.match(app, /!?\$\('#screen-create'\)\.classList\.contains\('hidden'\)[\s\S]*?candidate\.activeAlumni\s*=\s*DT\.state\.loadActiveAlumni/);
 });
 
+
+test('MONTH TRANSITION: ディアボロは学年の数だけ並ぶ（1年生=1個…4年生=4個）', () => {
+  // 生成側: turnLabelと同じ式で学年を出し、最大4個にクランプする
+  assert.match(app, /Math\.min\(MONTH_TRANSITION_MAX_DIABOLO, Math\.max\(1, Math\.ceil\(turn \/ 12\)\)\)/);
+  assert.match(app, /const MONTH_TRANSITION_MAX_DIABOLO\s*=\s*4/);
+  assert.match(app, /renderMonthTransitionDiabolo\(turn\)/);
+  assert.match(html, /id="month-transition-diabolo"/);
+  // 個数ごとの縮小は実寸(CSS変数)で行う。transform:scaleだとレイアウト幅が残りカードから溢れる
+  assert.match(css, /\.month-transition-diabolo\[data-count="4"\][^}]*--cup:/);
+  assert.match(css, /\.month-transition-cup\s*\{[\s\S]*?width: var\(--cup\)/);
+  assert.doesNotMatch(css, /\.month-transition-diabolo\[data-count="[234]"\] \.mt-dia \{ transform: scale/);
+});
+
 summary();

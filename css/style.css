@@ -444,27 +444,40 @@ select:focus { outline: none; box-shadow: var(--pop-shadow-sm); }
   text-align: center;
 }
 .month-transition-kicker { color: var(--ink-soft); font-family: 'Baloo 2', sans-serif; font-size: .74rem; font-weight: 800; letter-spacing: .17em; }
-.month-transition-diabolo { position: relative; display: flex; justify-content: center; align-items: center; height: 58px; margin: 7px 0 5px; }
+.month-transition-diabolo {
+  position: relative; display: flex; justify-content: center; align-items: center; flex-wrap: nowrap;
+  gap: 10px; height: 58px; margin: 7px 0 5px;
+  --cup: 48px; --axle-w: 18px; --axle-h: 13px;
+}
+/* 学年の数だけ並ぶ（1年生=1個…4年生=4個）。個数が増えたら実寸を縮める
+   （transform:scaleは見た目しか縮まずレイアウト幅が残ってカードから溢れるため使わない） */
+.mt-dia { display: inline-flex; align-items: center; }
+.month-transition-diabolo[data-count="2"] { --cup: 34px; --axle-w: 14px; --axle-h: 10px; }
+.month-transition-diabolo[data-count="3"] { --cup: 24px; --axle-w: 11px; --axle-h: 8px; gap: 7px; }
+.month-transition-diabolo[data-count="4"] { --cup: 18px; --axle-w: 9px; --axle-h: 7px; gap: 5px; }
 .month-transition-cup {
-  width: 48px; height: 48px; background: linear-gradient(135deg, #ff9177, var(--coral-deep));
+  width: var(--cup); height: var(--cup); flex: none; background: linear-gradient(135deg, #ff9177, var(--coral-deep));
   filter: drop-shadow(0 3px 0 rgba(43,58,103,.2));
   clip-path: polygon(0 6%, 90% 22%, 61% 50%, 90% 78%, 0 94%, 24% 50%);
 }
 .month-transition-cup.right { transform: scaleX(-1); }
-.month-transition-axle { width: 18px; height: 13px; margin: 0 -3px; border: 3px solid var(--ink); border-radius: 5px; background: var(--sun); z-index: 1; }
+.month-transition-axle { width: var(--axle-w); height: var(--axle-h); flex: none; margin: 0 -3px; border: 3px solid var(--ink); border-radius: 5px; background: var(--sun); z-index: 1; }
 .month-transition-label { color: var(--ink); font-size: 1.55rem; font-weight: 900; letter-spacing: .04em; }
 .month-transition-sub { min-height: 2.6em; margin-top: 3px; color: var(--ink-soft); font-family: 'Baloo 2', 'M PLUS Rounded 1c', sans-serif; font-size: .65rem; font-weight: 800; letter-spacing: .07em; line-height: 1.3; }
 .month-transition-progress { height: 8px; margin-top: 13px; overflow: hidden; border: 2px solid var(--ink); border-radius: 999px; background: #e3edff; }
 .month-transition-progress span { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--teal), var(--sun), var(--coral)); }
 .month-transition.is-active .month-transition-card { animation: month-transition-pop .24s cubic-bezier(.34,1.56,.64,1); }
-.month-transition.is-active .month-transition-diabolo { animation: month-transition-hop .5s ease-in-out 3; }
+.month-transition.is-active .mt-dia { animation: month-transition-hop .5s ease-in-out 3; }
+.month-transition.is-active .mt-dia:nth-child(2) { animation-delay: .1s; }
+.month-transition.is-active .mt-dia:nth-child(3) { animation-delay: .2s; }
+.month-transition.is-active .mt-dia:nth-child(4) { animation-delay: .3s; }
 .month-transition.is-active .month-transition-progress span { animation: month-transition-progress 1.5s linear forwards; }
 @keyframes month-transition-pop { from { opacity: 0; transform: translateY(12px) scale(.92); } to { opacity: 1; transform: none; } }
-@keyframes month-transition-hop { 50% { transform: translateY(-6px) rotate(-3deg); } }
+@keyframes month-transition-hop { 50% { translate: 0 -6px; rotate: -3deg; } }
 @keyframes month-transition-progress { to { width: 100%; } }
 @media (prefers-reduced-motion: reduce) {
   .month-transition.is-active .month-transition-card,
-  .month-transition.is-active .month-transition-diabolo,
+  .month-transition.is-active .mt-dia,
   .month-transition.is-active .month-transition-progress span { animation: none; }
   .month-transition.is-active .month-transition-progress span { width: 100%; }
 }
