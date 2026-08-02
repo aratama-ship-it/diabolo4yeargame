@@ -78,6 +78,14 @@ test('SHORT EVENT FLOW: 奇数月のイベントを1件に統一する', () => {
   assert.doesNotMatch(app, /function showTaiwanToilet\(/);
 });
 
+test('PUBLIC MODE: 24ターン版を既定にして48ターン版の導線を表示しない', () => {
+  assert.match(app, /const GAME_MODE = DT\.shortMode\.ID;/);
+  assert.match(app, /const SHORT = true;/);
+  assert.doesNotMatch(html, /id="btn-mode-switch"/);
+  assert.doesNotMatch(html, /id="mode-badge"/);
+  assert.doesNotMatch(app, /通常版（48ターン）へ戻る/);
+});
+
 test('MOBILE LAYOUT: 卒業生名簿の保存バーは下部セーフエリアを避ける', () => {
   assert.match(css, /\.alumni-savebar\s*\{[\s\S]*?env\(safe-area-inset-bottom\)/);
   assert.match(html, /id="alumni-modal"/);

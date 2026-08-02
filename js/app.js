@@ -3,8 +3,9 @@
   const DT = window.DT;
   const $ = (sel) => document.querySelector(sel);
   const QUERY_PARAMS = new URLSearchParams(window.location.search);
-  const GAME_MODE = QUERY_PARAMS.get('mode') === DT.shortMode.ID ? DT.shortMode.ID : 'standard';
-  const SHORT = GAME_MODE === DT.shortMode.ID;
+  // 公開版は24ターン版のみ。48ターン版の内部実装は将来の再検討用に残す。
+  const GAME_MODE = DT.shortMode.ID;
+  const SHORT = true;
 
   // 開発用表示（DEV PARAMSパネル・大会の不振理由）は URLに ?dev を付けたときだけ表示。
   // テスターには見えないようにするための切り替え。バージョンはタイトル画面に表示。
@@ -277,15 +278,10 @@
   // --- タイトル ---
   function initTitle() {
     $('#btn-continue').disabled = !DT.state.load(undefined, GAME_MODE);
-    $('#mode-badge').classList.toggle('hidden', !SHORT);
-    $('#mode-badge').textContent = 'SHORT MODE · 24 TURNS';
-    $('#title-main').textContent = SHORT ? '４８ヶ月のディアボロ SHORT' : '４８ヶ月のディアボロ';
-    $('#title-subtitle').textContent = SHORT ? '〜2ヶ月ずつ、大学4年間を駆け抜けろ〜' : '〜大学4年間、ディアボロに懸けろ〜';
-    $('#title-manual').textContent = SHORT
-      ? 'ショート版は1ターンで2ヶ月進み、全24ターン。偶数月に練習・勉強・休養を選び、奇数月はイベントが進みます。練習の能力上昇と勉強の学力上昇は通常版の2倍。大会・試験は本来の月に行われます。通常版とはセーブも別です。'
-      : '大学4年間でディアボロ選手を育てるゲームです。毎月、練習・勉強・休養を選びます。練習はジャンルと内容を組み合わせて3枠決めます。疲労がたまると失敗や怪我のリスクが上がるので注意。大会の成績と通算ポイントで、卒業時の評価が決まります。';
-    $('#btn-mode-switch').textContent = SHORT ? '通常版（48ターン）へ戻る' : '⚡ ショート版（24ターン）';
-    $('#app-version').textContent = APP_VERSION + (SHORT ? '（ショート版）' : '') + (DEV ? '（DEV表示ON）' : '');
+    $('#title-main').textContent = '４８ヶ月のディアボロ';
+    $('#title-subtitle').textContent = '〜2ヶ月ずつ、大学4年間を駆け抜けろ〜';
+    $('#title-manual').textContent = '1ターンで2ヶ月進む全24ターン。練習・勉強・休養を選び、得意分野を育てて大会へ挑みます。練習はジャンルと内容を組み合わせて3枠決めます。疲労がたまると失敗や怪我のリスクが上がるので注意。育てた選手は卒業時にカードとして残ります。';
+    $('#app-version').textContent = APP_VERSION + (DEV ? '（DEV表示ON）' : '');
     show('#screen-title');
   }
 
@@ -297,13 +293,6 @@
 
   $('#btn-new').onclick = () => renderCreate(newCandidate());
   $('#btn-continue').onclick = () => { state = DT.state.load(undefined, GAME_MODE); afterTurn([]); };
-  $('#btn-mode-switch').onclick = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('gallery');
-    url.searchParams.delete('auto');
-    if (SHORT) url.searchParams.delete('mode'); else url.searchParams.set('mode', DT.shortMode.ID);
-    window.location.href = url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '');
-  };
 
   // --- キャラ作成 ---
   function renderBackgroundButtons() {
