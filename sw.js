@@ -13,8 +13,8 @@
  */
 'use strict';
 
-const CACHE_VERSION = 'v20260801a';
-const CACHE_NAME = 'diapro-' + CACHE_VERSION;
+const CACHE_VERSION = 'v20260802a';
+const CACHE_NAME = 'diabolo4yeargame-' + CACHE_VERSION;
 
 // オフライン初回起動に最低限必要なもの。取得に失敗しても install は成功させる（配信構成の差異に強くする）
 const CORE_ASSETS = [
@@ -52,7 +52,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k.startsWith('diapro-') && k !== CACHE_NAME).map(k => caches.delete(k)));
+    await Promise.all(keys.filter(k => k.startsWith('diabolo4yeargame-') && k !== CACHE_NAME).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
