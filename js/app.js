@@ -279,7 +279,7 @@
     $('#btn-continue').disabled = !DT.state.load(undefined, GAME_MODE);
     $('#mode-badge').classList.toggle('hidden', !SHORT);
     $('#mode-badge').textContent = 'SHORT MODE · 24 TURNS';
-    $('#title-main').textContent = SHORT ? 'ディアボロ選手育成 SHORT' : 'ディアボロ選手育成';
+    $('#title-main').textContent = SHORT ? '４８ヶ月のディアボロ SHORT' : '４８ヶ月のディアボロ';
     $('#title-subtitle').textContent = SHORT ? '〜2ヶ月ずつ、大学4年間を駆け抜けろ〜' : '〜大学4年間、ディアボロに懸けろ〜';
     $('#title-manual').textContent = SHORT
       ? 'ショート版は1ターンで2ヶ月進み、全24ターン。偶数月に練習・勉強・休養を選び、奇数月はイベントが進みます。練習の能力上昇と勉強の学力上昇は通常版の2倍。大会・試験は本来の月に行われます。通常版とはセーブも別です。'
@@ -2682,7 +2682,7 @@
 
   // シェア文言＋URL（バックエンドなし＝ゲームのURL。?auto等のクエリは落とす）
   function shareText(card) {
-    return 'ディアボロ選手育成で「' + card.title + '」に！\n#ディアボロ選手育成';
+    return '４８ヶ月のディアボロで「' + card.title + '」に！\n#４８ヶ月のディアボロ';
   }
   function shareUrl() { return location.origin + location.pathname; }
 

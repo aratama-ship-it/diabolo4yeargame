@@ -2,7 +2,7 @@
   "name": "diabolo-trainer",
   "version": "0.9.0",
   "private": true,
-  "description": "ディアボロ選手育成ゲームのWeb版とiOS版",
+  "description": "「４８ヶ月のディアボロ」のWeb版とiOS版",
   "scripts": {
     "build:web": "node scripts/build-web.mjs",
     "test": "node scripts/run-tests.mjs",

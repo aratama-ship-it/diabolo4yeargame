@@ -13,7 +13,7 @@
  */
 'use strict';
 
-const CACHE_VERSION = 'v20260802a';
+const CACHE_VERSION = 'v20260802b';
 const CACHE_NAME = 'diabolo4yeargame-' + CACHE_VERSION;
 
 // オフライン初回起動に最低限必要なもの。取得に失敗しても install は成功させる（配信構成の差異に強くする）
