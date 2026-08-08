@@ -15,7 +15,7 @@
 - JDA配点は `DT.DATA.SCORING` に一元化: weights = 難易度30/多彩性10/操作安定10/新奇性10/演技構成20、基礎 = 4要素×5点（能力値25ごとに1要素達成）
 - セーブキーは `diabolo-trainer-save-v2` に変更（旧セーブは無効化、意図的）
 - `js/engine.js` の本体コードは変更しない（stat ID非依存のため。テストのID参照のみ更新）
-- テスト実行は `node tests/test-<module>.js`、リポジトリルート = app-dev/diabolo-trainer/
+- テスト実行は `node tests/test-<module>.js`、リポジトリルート = apps/Analyze-app/diabolo-trainer/
 
 ---
 

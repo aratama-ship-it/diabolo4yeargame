@@ -19,7 +19,7 @@
 - 主人公名: キャラ作成画面で入力（8文字まで、空なら「主人公」）。エンディングとイベント画面で使用
 - セーブキー `diabolo-trainer-save-v4`、OLD_KEYSにv3追加
 - キャラ名は仮置き（後でユーザーが変更可能なようdata.jsに一元化）: 剣持コーチ／陽太（同期）／美琴先輩／志音（ライバル）／魁人（王者）
-- リポジトリルート: app-dev/diabolo-trainer/
+- リポジトリルート: apps/Analyze-app/diabolo-trainer/
 
 ---
 

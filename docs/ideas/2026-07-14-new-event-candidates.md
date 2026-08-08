@@ -2,7 +2,7 @@
 
 作成日: 2026-07-14（運転中のアイデア出しから起票、2026-07-14に整理・配置）
 
-- 場所: `app-dev/diabolo-trainer/docs/ideas/`
+- 場所: `apps/Analyze-app/diabolo-trainer/docs/ideas/`
 - 位置づけ: [[project_diabolo_trainer_app]]の「アイデアタスク」枠に合流。既存EVENT_DRAFTS方式（data.js）で実装する想定。
   「大道芸人ジョージ」はキャラ+人物イベント＝[[project_diabolo_trainer_codex_review]]が挙げた次の面白さ「NPCと目標提示」の候補にあたる。
 

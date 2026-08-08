@@ -7,9 +7,9 @@
 
 実装・検証の具体的なマイルストーンは、[写真から一貫したデフォルメキャラクターを作るスキル 実装計画](./2026-07-14-character-consistency-skill-plan.md)を参照。
 
-4方向の生成・検査・保存方法は、[キャラクター4面図生成仕様書](../../../../character-consistency-refs/four-view-turnaround-spec.md)を参照。
+4方向の生成・検査・保存方法は、[キャラクター4面図生成仕様書](../../../../knowledge/character-consistency-refs/four-view-turnaround-spec.md)を参照。
 
-- 場所: `app-dev/diabolo-trainer/docs/reference/`（運転中のアイデア出しから起票、2026-07-14に整理・配置）
+- 場所: `apps/Analyze-app/diabolo-trainer/docs/reference/`（運転中のアイデア出しから起票、2026-07-14に整理・配置）
 - 位置づけ: 汎用の技術ガイドだが、当面の主対象は[[project_diabolo_trainer_app]]。既にアイコン画像運用実績あり
   （ホームのアクションアイコンを提供画像に差替済み、[[project_diabolo_trainer_pending_ui]]参照）。
   今後NPC/イベント（例: 「大道芸人ジョージ」[docs/ideas/2026-07-14-new-event-candidates.md](../ideas/2026-07-14-new-event-candidates.md)）に

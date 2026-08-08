@@ -22,7 +22,7 @@
 - イベントのstat効果: difficulty/novelty/control → **全4ジャンルの該当マスに同量**適用。composition→compositionへ。（EVENTSデータのidはそのまま）
 - ending: abilityAvg = 13値（12マス+composition）の平均。ajdcOverallWin/worldsWin/閾値は不変
 - セーブ `diabolo-trainer-save-v7`、OLD_KEYSにv6追加
-- リポジトリルート: app-dev/diabolo-trainer/
+- リポジトリルート: apps/Analyze-app/diabolo-trainer/
 
 ---
 

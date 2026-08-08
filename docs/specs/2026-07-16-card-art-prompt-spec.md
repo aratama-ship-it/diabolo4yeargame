@@ -5,7 +5,7 @@
 ステータス: **1周目・作風選定用。全50枚への展開前**  
 関連: [カード中央画像 生成・選択 設計書](./2026-07-15-card-art-generation-selection-design.md) / [カードカタログ（全50種）](./2026-07-15-card-catalog-50.md) / [トレーディングカード・エンディング設計](./2026-07-15-trading-card-ending-design.md)
 
-> **2026-07-16 現行方針:** 本書のクール配色、人物なし、A/B/C作風固定は比較検討用の旧案であり、現在の生成にはそのまま適用しない。現行の色・人物・ポップ作風は [Liteガイドライン](./2026-07-16-card-art-guidelines-lite.md) を優先する。ディアボロ本体、紐、スティック、人物との3D方向については、画風に関係なく [共通物理仕様](../../../../character-consistency-refs/diabolo-physics-constraints.md) を最優先する。
+> **2026-07-16 現行方針:** 本書のクール配色、人物なし、A/B/C作風固定は比較検討用の旧案であり、現在の生成にはそのまま適用しない。現行の色・人物・ポップ作風は [Liteガイドライン](./2026-07-16-card-art-guidelines-lite.md) を優先する。ディアボロ本体、紐、スティック、人物との3D方向については、画風に関係なく [共通物理仕様](../../../../knowledge/character-consistency-refs/diabolo-physics-constraints.md) を最優先する。
 
 ## 0. この文書の役割
 

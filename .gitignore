@@ -4,3 +4,10 @@
 /tmp/
 /node_modules/
 /www/
+
+# iCloudの同期競合コピー(「app 2.js」等)は追跡しない
+* [0-9].*
+
+# タイトル画像は採用版のみ追跡する(未採用候補は1枚2.5MB前後で、公開リポジトリを重くするため)
+/assets/title/*
+!/assets/title/title-card-combo-trail-v4-people-3d.png

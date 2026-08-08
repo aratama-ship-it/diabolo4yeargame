@@ -2,7 +2,7 @@
 
 作成日: 2026-07-14  
 関連資料: [デフォルメキャラクター一貫生成システム 設計書・運用アイデア・制作フロー](./2026-07-14-character-consistency-workflow.md)  
-4面図仕様: [キャラクター4面図生成仕様書](../../../../character-consistency-refs/four-view-turnaround-spec.md)  
+4面図仕様: [キャラクター4面図生成仕様書](../../../../knowledge/character-consistency-refs/four-view-turnaround-spec.md)  
 想定基盤: ChatGPT Images 2.0 / GPT Image 2  
 計画の対象: 写真から人物・動物を独自のデフォルメキャラクターに変換し、角度・表情・ポーズを変えても同一キャラクターと同一作風を保つ再利用可能なスキル
 
