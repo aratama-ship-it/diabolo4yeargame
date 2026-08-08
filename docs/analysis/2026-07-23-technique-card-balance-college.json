@@ -1,0 +1,439 @@
+{
+  "generatedAt": "2026-07-23T05:56:49.222Z",
+  "mode": "short",
+  "assumptions": {
+    "bonusTiming": "ショート版の2倍処理後に加算",
+    "signatureEvent": "3年生5月（内部turn 26）の固定イベントで選択し、同月の通常イベント1件を置き換える",
+    "growthEffectStarts": "固定イベント後、次の練習月（3年生6月）から適用",
+    "contestEffectStarts": "固定イベント後、3年生5月以降の大会から適用",
+    "activation": "該当スロットの練習ゲインが1以上のときだけ適用",
+    "cap": 100,
+    "happening": "通常の審査員ぶれ±3を候補幅へ拡大。平均値は不変",
+    "candidateSelection": "カードごと・難易度ごとにヒューリスティック方針を再選定"
+  },
+  "sampleSizes": {
+    "selectionN": 5,
+    "validationN": 20,
+    "evaluationN": 400
+  },
+  "cards": [
+    {
+      "id": "none",
+      "label": "カードなし",
+      "rules": []
+    },
+    {
+      "id": "integral",
+      "label": "インテグラル",
+      "rules": [
+        {
+          "genres": [
+            "h1d"
+          ],
+          "method": "difficulty",
+          "amount": 8
+        }
+      ]
+    },
+    {
+      "id": "high_toss",
+      "label": "ハイトス",
+      "rules": [
+        {
+          "genres": [
+            "d2",
+            "d3"
+          ],
+          "method": "control",
+          "amount": 6
+        },
+        {
+          "genres": [
+            "d2",
+            "d3"
+          ],
+          "method": "novelty",
+          "amount": -1
+        }
+      ]
+    },
+    {
+      "id": "fts",
+      "label": "FTS",
+      "rules": [
+        {
+          "genres": [
+            "d3"
+          ],
+          "method": "difficulty",
+          "amount": 10
+        }
+      ]
+    },
+    {
+      "id": "picture",
+      "label": "ピクチャー",
+      "rules": [
+        {
+          "genres": [
+            "h1d",
+            "v1d"
+          ],
+          "method": "novelty",
+          "amount": 3
+        }
+      ]
+    },
+    {
+      "id": "pirouette",
+      "label": "ピルエット",
+      "rules": [
+        {
+          "initial": true,
+          "genres": [
+            "h1d",
+            "v1d",
+            "d2",
+            "d3"
+          ],
+          "method": "difficulty",
+          "amount": 1
+        }
+      ]
+    },
+    {
+      "id": "sadistic",
+      "label": "サディスティック",
+      "rules": [
+        {
+          "genres": [
+            "h1d"
+          ],
+          "method": "novelty",
+          "amount": 5
+        }
+      ]
+    },
+    {
+      "id": "on_beat",
+      "label": "音はめ",
+      "rules": [
+        {
+          "initial": true,
+          "routine": true,
+          "amount": 2
+        }
+      ]
+    },
+    {
+      "id": "body",
+      "label": "ボディ系",
+      "rules": [
+        {
+          "initial": true,
+          "genres": [
+            "h1d",
+            "v1d",
+            "d2",
+            "d3"
+          ],
+          "method": "novelty",
+          "amount": 2
+        }
+      ]
+    },
+    {
+      "id": "happening6",
+      "label": "ハプニング（±6）",
+      "rules": []
+    },
+    {
+      "id": "happening8",
+      "label": "ハプニング（±8）",
+      "rules": []
+    },
+    {
+      "id": "happening10",
+      "label": "ハプニング（±10）",
+      "rules": []
+    }
+  ],
+  "results": [
+    {
+      "card": "none",
+      "label": "カードなし",
+      "background": "college",
+      "selectedPolicy": "h1d__rest55__lean__adaptive",
+      "trainingPlan": "1DH一点特化",
+      "meanPoints": 203.58,
+      "pointsSd": 34.68153110806959,
+      "pointsP10": 157,
+      "pointsP90": 244,
+      "meanAbility": 30.73115384615385,
+      "meanTechniqueDelta": 0,
+      "meanTechniqueTrainingActions": 7.3025,
+      "graduationRate": 1,
+      "sRate": 0,
+      "saRate": 0,
+      "meanWins": 3.2375,
+      "meanPodiums": 4.735,
+      "pairedPointDelta": 0,
+      "pairedPointDeltaSd": 0,
+      "pairedPointDeltaSe": 0,
+      "pairedAbilityDelta": 0
+    },
+    {
+      "card": "integral",
+      "label": "インテグラル",
+      "background": "college",
+      "selectedPolicy": "h1d__rest55__lean__adaptive",
+      "trainingPlan": "1DH一点特化",
+      "meanPoints": 206.315,
+      "pointsSd": 31.60815994328048,
+      "pointsP10": 163,
+      "pointsP90": 246,
+      "meanAbility": 30.839999999999996,
+      "meanTechniqueDelta": 9.3425,
+      "meanTechniqueTrainingActions": 7.3175,
+      "graduationRate": 1,
+      "sRate": 0,
+      "saRate": 0,
+      "meanWins": 3.555,
+      "meanPodiums": 4.9025,
+      "pairedPointDelta": 2.735,
+      "pairedPointDeltaSd": 7.100688346913961,
+      "pairedPointDeltaSe": 0.355034417345698,
+      "pairedAbilityDelta": 0.1088461538461539
+    },
+    {
+      "card": "high_toss",
+      "label": "ハイトス",
+      "background": "college",
+      "selectedPolicy": "adaptive__rest55__lean__adaptive",
+      "trainingPlan": "大会・練習会適応",
+      "meanPoints": 226.335,
+      "pointsSd": 232.43920231966035,
+      "pointsP10": 40,
+      "pointsP90": 550,
+      "meanAbility": 56.64961538461539,
+      "meanTechniqueDelta": 6.1475,
+      "meanTechniqueTrainingActions": 7.9575,
+      "graduationRate": 1,
+      "sRate": 0.025,
+      "saRate": 0.0375,
+      "meanWins": 1.4725,
+      "meanPodiums": 2.5275,
+      "pairedPointDelta": 22.755,
+      "pairedPointDeltaSd": 223.5650575895078,
+      "pairedPointDeltaSe": 11.17825287947539,
+      "pairedAbilityDelta": 25.91846153846152
+    },
+    {
+      "card": "fts",
+      "label": "FTS",
+      "background": "college",
+      "selectedPolicy": "h1d__rest55__lean__adaptive",
+      "trainingPlan": "1DH一点特化",
+      "meanPoints": 203.58,
+      "pointsSd": 34.68153110806959,
+      "pointsP10": 157,
+      "pointsP90": 244,
+      "meanAbility": 30.73115384615385,
+      "meanTechniqueDelta": 0,
+      "meanTechniqueTrainingActions": 7.3025,
+      "graduationRate": 1,
+      "sRate": 0,
+      "saRate": 0,
+      "meanWins": 3.2375,
+      "meanPodiums": 4.735,
+      "pairedPointDelta": 0,
+      "pairedPointDeltaSd": 0,
+      "pairedPointDeltaSe": 0,
+      "pairedAbilityDelta": 0
+    },
+    {
+      "card": "picture",
+      "label": "ピクチャー",
+      "background": "college",
+      "selectedPolicy": "h1d__rest55__lean__adaptive",
+      "trainingPlan": "1DH一点特化",
+      "meanPoints": 204.3025,
+      "pointsSd": 33.7884002839732,
+      "pointsP10": 159,
+      "pointsP90": 244,
+      "meanAbility": 30.755576923076916,
+      "meanTechniqueDelta": 2.82,
+      "meanTechniqueTrainingActions": 7.29,
+      "graduationRate": 1,
+      "sRate": 0,
+      "saRate": 0,
+      "meanWins": 3.3,
+      "meanPodiums": 4.78,
+      "pairedPointDelta": 0.7225,
+      "pairedPointDeltaSd": 2.726810178578615,
+      "pairedPointDeltaSe": 0.13634050892893074,
+      "pairedAbilityDelta": 0.024423076923076926
+    },
+    {
+      "card": "pirouette",
+      "label": "ピルエット",
+      "background": "college",
+      "selectedPolicy": "h1d__rest55__lean__adaptive",
+      "trainingPlan": "1DH一点特化",
+      "meanPoints": 203.9225,
+      "pointsSd": 34.70780162657959,
+      "pointsP10": 158,
+      "pointsP90": 244,
+      "meanAbility": 30.984999999999978,
+      "meanTechniqueDelta": 3.8175,
+      "meanTechniqueTrainingActions": 7.3125,
+      "graduationRate": 1,
+      "sRate": 0,
+      "saRate": 0,
+      "meanWins": 3.2825,
+      "meanPodiums": 4.7575,
+      "pairedPointDelta": 0.3425,
+      "pairedPointDeltaSd": 3.4985988266733394,
+      "pairedPointDeltaSe": 0.17492994133366696,
+      "pairedAbilityDelta": 0.2538461538461526
+    },
+    {
+      "card": "sadistic",
+      "label": "サディスティック",
+      "background": "college",
+      "selectedPolicy": "adaptive__rest55__lean__adaptive",
+      "trainingPlan": "大会・練習会適応",
+      "meanPoints": 225.555,
+      "pointsSd": 233.65731740093216,
+      "pointsP10": 39,
+      "pointsP90": 531,
+      "meanAbility": 56.80826923076928,
+      "meanTechniqueDelta": 8.1525,
+      "meanTechniqueTrainingActions": 7.9875,
+      "graduationRate": 1,
+      "sRate": 0.03,
+      "saRate": 0.045,
+      "meanWins": 1.5,
+      "meanPodiums": 2.51,
+      "pairedPointDelta": 21.975,
+      "pairedPointDeltaSd": 224.26543285803112,
+      "pairedPointDeltaSe": 11.213271642901557,
+      "pairedAbilityDelta": 26.0771153846154
+    },
+    {
+      "card": "on_beat",
+      "label": "音はめ",
+      "background": "college",
+      "selectedPolicy": "h1d__rest55__lean__adaptive",
+      "trainingPlan": "1DH一点特化",
+      "meanPoints": 203.8125,
+      "pointsSd": 34.5752417742812,
+      "pointsP10": 156,
+      "pointsP90": 244,
+      "meanAbility": 30.87557692307696,
+      "meanTechniqueDelta": 2,
+      "meanTechniqueTrainingActions": 7.3075,
+      "graduationRate": 1,
+      "sRate": 0,
+      "saRate": 0,
+      "meanWins": 3.27,
+      "meanPodiums": 4.76,
+      "pairedPointDelta": 0.2325,
+      "pairedPointDeltaSd": 1.7616593739994129,
+      "pairedPointDeltaSe": 0.08808296869997065,
+      "pairedAbilityDelta": 0.14442307692307682
+    },
+    {
+      "card": "body",
+      "label": "ボディ系",
+      "background": "college",
+      "selectedPolicy": "h1d__rest55__lean__adaptive",
+      "trainingPlan": "1DH一点特化",
+      "meanPoints": 203.85,
+      "pointsSd": 34.503369400683134,
+      "pointsP10": 157,
+      "pointsP90": 244,
+      "meanAbility": 31.174230769230785,
+      "meanTechniqueDelta": 7.225,
+      "meanTechniqueTrainingActions": 7.2975,
+      "graduationRate": 1,
+      "sRate": 0,
+      "saRate": 0,
+      "meanWins": 3.27,
+      "meanPodiums": 4.755,
+      "pairedPointDelta": 0.27,
+      "pairedPointDeltaSd": 1.748456462140244,
+      "pairedPointDeltaSe": 0.0874228231070122,
+      "pairedAbilityDelta": 0.4430769230769209
+    },
+    {
+      "card": "happening6",
+      "label": "ハプニング（±6）",
+      "background": "college",
+      "selectedPolicy": "h1d__rest55__lean__adaptive",
+      "trainingPlan": "1DH一点特化",
+      "meanPoints": 201.62,
+      "pointsSd": 35.4391817061286,
+      "pointsP10": 154,
+      "pointsP90": 243,
+      "meanAbility": 30.695769230769216,
+      "meanTechniqueDelta": 0,
+      "meanTechniqueTrainingActions": 7.2925,
+      "graduationRate": 1,
+      "sRate": 0,
+      "saRate": 0,
+      "meanWins": 3.0975,
+      "meanPodiums": 4.625,
+      "pairedPointDelta": -1.96,
+      "pairedPointDeltaSd": 5.829957118195626,
+      "pairedPointDeltaSe": 0.2914978559097813,
+      "pairedAbilityDelta": -0.03538461538461539
+    },
+    {
+      "card": "happening8",
+      "label": "ハプニング（±8）",
+      "background": "college",
+      "selectedPolicy": "h1d__rest55__lean__adaptive",
+      "trainingPlan": "1DH一点特化",
+      "meanPoints": 200.125,
+      "pointsSd": 36.101237859663485,
+      "pointsP10": 151,
+      "pointsP90": 244,
+      "meanAbility": 30.679038461538447,
+      "meanTechniqueDelta": 0,
+      "meanTechniqueTrainingActions": 7.29,
+      "graduationRate": 1,
+      "sRate": 0,
+      "saRate": 0,
+      "meanWins": 3.03,
+      "meanPodiums": 4.5125,
+      "pairedPointDelta": -3.455,
+      "pairedPointDeltaSd": 7.4550637153548065,
+      "pairedPointDeltaSe": 0.3727531857677403,
+      "pairedAbilityDelta": -0.05211538461538459
+    },
+    {
+      "card": "happening10",
+      "label": "ハプニング（±10）",
+      "background": "college",
+      "selectedPolicy": "balance__rest55__lean__adaptive",
+      "trainingPlan": "弱点補強",
+      "meanPoints": 141.8525,
+      "pointsSd": 140.18880391725295,
+      "pointsP10": 23,
+      "pointsP90": 327,
+      "meanAbility": 46.5405769230769,
+      "meanTechniqueDelta": 0,
+      "meanTechniqueTrainingActions": 7.91,
+      "graduationRate": 1,
+      "sRate": 0.02,
+      "saRate": 0.02,
+      "meanWins": 1.015,
+      "meanPodiums": 1.595,
+      "pairedPointDelta": -61.7275,
+      "pairedPointDeltaSd": 133.99663519562716,
+      "pairedPointDeltaSe": 6.699831759781358,
+      "pairedAbilityDelta": 15.809423076923087
+    }
+  ]
+}
