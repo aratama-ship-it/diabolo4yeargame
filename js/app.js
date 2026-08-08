@@ -1567,6 +1567,63 @@
     box.replaceChildren(svg);
   }
 
+  // ---- 切替演出のキャラクター（自作のねんどろいど風部員・2026-08-08） ----
+  // 絵は「ディアボロを持って回している1枚絵」で、部品に分けず1つのまとまりとして扱う。
+  // 動きは上のコマ撮り（7コマ×100ms）に乗せ、左右へ小さく揺れるだけにする。関節は動かさない。
+  // 並ぶ人数は学年連動（1年生=1人…4年生=4人）でディアボロ個数の考え方をそのまま引き継ぐ。
+  // 素材が未配置・読み込み失敗のときは、従来のスティック＋紐のSVG装置へ自動で戻す。
+  const MT_CHAR_SRC = [1, 2, 3, 4].map(n => 'assets/loader/performer-' + n + '.png');
+  const MT_CHAR_SCALE = [1, .92, .82, .72];
+  // 7コマぶんの揺れ。左右の往復1周期を等間隔で刻む（値はpxと度）
+  const MT_SWAY = [
+    { x: 0, r: 0 }, { x: 2.5, r: 2 }, { x: 3.5, r: 3 }, { x: 2.5, r: 2 },
+    { x: 0, r: 0 }, { x: -2.5, r: -2 }, { x: -3.5, r: -3 }
+  ];
+  const mtCharReady = MT_CHAR_SRC.map(() => false);
+  let mtCharNodes = null;
+
+  // 起動時に先読みする。1枚目が無ければそこで打ち切り、素材未配置のときの404を1件に抑える。
+  // 失敗は「使えない」として扱うだけで、例外にはしない。
+  (function preloadMonthTransitionCharacters(i) {
+    if (i >= MT_CHAR_SRC.length) return;
+    const img = new Image();
+    img.onload = () => { mtCharReady[i] = true; preloadMonthTransitionCharacters(i + 1); };
+    img.src = MT_CHAR_SRC[i];
+  })(0);
+
+  // n人ぶんの絵が揃っているときだけキャラ表示にする（1人でも欠けたら装置へ戻す）
+  function monthTransitionCharsReady(n) {
+    for (let i = 0; i < n; i++) { if (!mtCharReady[i]) return false; }
+    return true;
+  }
+
+  // 画像は毎コマ作り直さず、最初に組んでから transform だけを差し替える
+  function buildMonthTransitionCharacters(box, n) {
+    const row = el('div', 'mt-chars');
+    const nodes = [];
+    for (let i = 0; i < n; i++) {
+      const img = document.createElement('img');
+      img.className = 'mt-char';
+      img.src = MT_CHAR_SRC[i];
+      img.alt = '';
+      img.decoding = 'async';
+      row.appendChild(img);
+      nodes.push(img);
+    }
+    box.replaceChildren(row);
+    return nodes;
+  }
+
+  function applyMonthTransitionSway(nodes, n, f) {
+    const scale = MT_CHAR_SCALE[n - 1] || MT_CHAR_SCALE[MT_CHAR_SCALE.length - 1];
+    nodes.forEach((img, i) => {
+      // 人ごとにコマをずらし、全員が同時に同じ向きへ倒れないようにする
+      const sway = MT_SWAY[(f + i * 2) % MT_FRAMES];
+      img.style.transform =
+        'translateX(' + sway.x + 'px) rotate(' + sway.r + 'deg) scale(' + scale + ')';
+    });
+  }
+
   function stopMonthTransitionFrames() {
     if (monthTransitionFrameTimer) { clearInterval(monthTransitionFrameTimer); monthTransitionFrameTimer = null; }
   }
@@ -1575,16 +1632,25 @@
     const box = $('#month-transition-diabolo');
     if (!box) return;
     const year = Math.min(MONTH_TRANSITION_MAX_DIABOLO, Math.max(1, Math.ceil(turn / 12)));
+    const useChars = monthTransitionCharsReady(year);
     box.dataset.count = String(year);
+    box.classList.toggle('has-chars', useChars);
     stopMonthTransitionFrames();
+    mtCharNodes = null;
     let f = 0;
-    renderMonthTransitionScene(box, year, f);
+    if (useChars) {
+      mtCharNodes = buildMonthTransitionCharacters(box, year);
+      applyMonthTransitionSway(mtCharNodes, year, f);
+    } else {
+      renderMonthTransitionScene(box, year, f);
+    }
     // 動きを減らす設定のときは1コマ目で静止させる
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return;
     monthTransitionFrameTimer = setInterval(() => {
       f = (f + 1) % MT_FRAMES;
-      renderMonthTransitionScene(box, year, f);
+      if (mtCharNodes) applyMonthTransitionSway(mtCharNodes, year, f);
+      else renderMonthTransitionScene(box, year, f);
     }, MT_FRAME_MS);
   }
 

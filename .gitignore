@@ -8,6 +8,9 @@
 # iCloudの同期競合コピー(「app 2.js」等)は追跡しない
 * [0-9].*
 
+# 端末ごとの権限設定は共有しない(launch.jsonは共有する)
+/.claude/settings.local.json
+
 # タイトル画像は採用版のみ追跡する(未採用候補は1枚2.5MB前後で、公開リポジトリを重くするため)
 /assets/title/*
 !/assets/title/title-card-combo-trail-v4-people-3d.png

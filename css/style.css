@@ -449,6 +449,15 @@ select:focus { outline: none; box-shadow: var(--pop-shadow-sm); }
 .mt-axle { fill: var(--sun); stroke: var(--ink); stroke-width: 2; }
 .mt-dia.is-air .mt-cup { fill: var(--sun); }
 .mt-dia.is-air .mt-axle { fill: var(--coral); }
+/* キャラ表示（2026-08-08）: 絵は分解せず1枚のまま、コマ送りで左右へ小さく揺れる。
+   素材が揃わないときは has-chars が付かず、上のSVG装置がそのまま使われる。 */
+.month-transition-diabolo.has-chars { height: 96px; }
+.mt-chars { display: flex; align-items: flex-end; justify-content: center; gap: 2px; height: 100%; }
+.mt-char {
+  height: 100%; width: auto; max-width: 25%; object-fit: contain; object-position: bottom center;
+  transform-origin: 50% 100%; /* 足元を軸に揺らすと、立っているまま傾いて見える */
+  will-change: transform;
+}
 .month-transition-label { color: var(--ink); font-size: 1.55rem; font-weight: 900; letter-spacing: .04em; }
 .month-transition-sub { min-height: 2.6em; margin-top: 3px; color: var(--ink-soft); font-family: 'Baloo 2', 'M PLUS Rounded 1c', sans-serif; font-size: .65rem; font-weight: 800; letter-spacing: .07em; line-height: 1.3; }
 .month-transition-progress { height: 8px; margin-top: 13px; overflow: hidden; border: 2px solid var(--ink); border-radius: 999px; background: #e3edff; }
