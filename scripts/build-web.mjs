@@ -14,4 +14,8 @@ for (const directory of ['css', 'js', 'assets/icons', 'assets/cards/web']) {
   cpSync(new URL(directory, root), new URL(directory, output), { recursive: true });
 }
 
+const titleAsset = 'assets/title/title-card-combo-trail-v4-people-3d.png';
+mkdirSync(new URL('assets/title/', output), { recursive: true });
+cpSync(new URL(titleAsset, root), new URL(titleAsset, output));
+
 console.log('iOS用Web資産を www/ に同期しました。');
