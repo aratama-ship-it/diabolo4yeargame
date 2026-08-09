@@ -56,8 +56,20 @@
     margin-top: 3mm; font-size: 5mm; font-weight: 700; color: var(--ink-soft); letter-spacing: .02em;
   }
 
+  /* 見出しの右に、ホーム画面へ追加したあとの見え方をそのまま置く。
+     角丸はiOSと同じ約22.4%、名前は apple-mobile-web-app-title の値。 */
+  .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8mm; }
+  .head-main { flex: 1; min-width: 0; }
+  .home-icon { flex: 0 0 auto; padding-top: 3mm; text-align: center; width: 34mm; }
+  .home-icon img {
+    width: 25mm; height: 25mm; border-radius: 5.6mm; display: block; margin: 0 auto;
+    box-shadow: 0 1.2mm 2.6mm rgba(34,53,95,.22);
+  }
+  .home-icon .name { margin-top: 1.8mm; font-size: 2.8mm; font-weight: 800; color: var(--ink); }
+  .home-icon .cap { margin-top: 1.4mm; font-size: 2.6mm; font-weight: 700; color: var(--ink-soft); line-height: 1.45; }
+
   /* ---- タイトル画（下辺を白へ溶かして紙になじませる） ---- */
-  .art { position: relative; margin-top: 4mm; height: 104mm; overflow: hidden; border-radius: 3mm; }
+  .art { position: relative; flex: none; margin-top: 4mm; height: 80mm; overflow: hidden; border-radius: 3mm; }
   /* 左下のディアボロから右上へ子どもが育っていく並びが主役。切り落とさない位置に寄せる */
   .art img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 38%; display: block; }
   .art::after {
@@ -82,11 +94,11 @@
 
 
   /* ---- 3つの要点 ---- */
-  .points { margin-top: 7mm; }
-  .point { border-top: .8mm solid var(--ink); padding-top: 3mm; display: flex; align-items: baseline; gap: 5mm; }
+  .points { margin-top: 6mm; }
+  .point { border-top: .8mm solid var(--ink); padding-top: 3mm; display: flex; align-items: flex-start; gap: 5mm; }
   .point .no { font-family: 'Baloo 2', sans-serif; font-size: 5mm; font-weight: 800; color: var(--red); line-height: 1; }
   .point h3 { flex: 0 0 auto; font-size: 5.2mm; font-weight: 900; letter-spacing: .01em; }
-  .point p { flex: 1; font-size: 3.4mm; font-weight: 600; line-height: 1.6; color: var(--ink-soft); }
+  .point p { flex: 1; padding-top: .8mm; font-size: 3.4mm; font-weight: 600; line-height: 1.6; color: var(--ink-soft); }
 
   /* ---- QR（この紙の目的。一番大きな行動導線） ---- */
   .cta {
@@ -141,6 +153,11 @@
     <div class="head-main">
       <h1><span class="num">４８</span>ヶ月の<br>ディアボロ</h1>
       <p class="lead">４年間ディアボロ漬けの育成ゲーム。</p>
+    </div>
+    <div class="home-icon">
+      <img src="../../assets/pwa/apple-touch-icon.png" alt="">
+      <div class="name">４８ヶ月のディアボロ</div>
+      <div class="cap">ホーム画面には<br>このアイコンで並びます</div>
     </div>
   </div>
 
