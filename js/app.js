@@ -98,7 +98,7 @@
   // メーター行（label / gauge / value）。warnで疲労系の赤グラデ
   function meterRow(label, value, opts) {
     opts = opts || {};
-    const row = el('div', 'meter');
+    const row = el('div', 'meter' + (opts.wideLabel ? ' wide-label' : ''));
     row.appendChild(el('span', 'm-label', label));
     const gauge = el('div', 'gauge' + (opts.warn ? ' warn' : ''));
     const fill = el('span');
@@ -956,7 +956,7 @@
     $('#trainmenu-skills').replaceChildren(
       el('div', 'board-label', '能力値'),
       skillTable(state.skills),
-      meterRow('演技構成', state.composition)
+      meterRow('演技構成', state.composition, { wideLabel: true })
     );
 
     $('#slot-row').replaceChildren(...slotsUI.map(slotButton));
@@ -1572,6 +1572,10 @@
   // 動きは上のコマ撮り（7コマ×100ms）に乗せ、左右へ小さく揺れるだけにする。関節は動かさない。
   // 並ぶ人数は学年連動（1年生=1人…4年生=4人）でディアボロ個数の考え方をそのまま引き継ぐ。
   // 素材が未配置・読み込み失敗のときは、従来のスティック＋紐のSVG装置へ自動で戻す。
+  // 4枚揃うまではキャラに切り替えない（2026-08-09 決定）。1〜2年はキャラ・3年から装置、と
+  // プレイ中に演出が入れ替わって見えるため。performer-4.png が置かれた時点で自動的に切り替わる。
+  // 素材ごと止めたいときは false にする（画像を一切取りに行かなくなる）。
+  const MT_CHARS_ENABLED = true;
   const MT_CHAR_SRC = [1, 2, 3, 4].map(n => 'assets/loader/performer-' + n + '.png');
   const MT_CHAR_SCALE = [1, .92, .82, .72];
   // 7コマぶんの揺れ。左右の往復1周期を等間隔で刻む（値はpxと度）
@@ -1585,16 +1589,17 @@
   // 起動時に先読みする。1枚目が無ければそこで打ち切り、素材未配置のときの404を1件に抑える。
   // 失敗は「使えない」として扱うだけで、例外にはしない。
   (function preloadMonthTransitionCharacters(i) {
-    if (i >= MT_CHAR_SRC.length) return;
+    if (!MT_CHARS_ENABLED || i >= MT_CHAR_SRC.length) return;
     const img = new Image();
     img.onload = () => { mtCharReady[i] = true; preloadMonthTransitionCharacters(i + 1); };
     img.src = MT_CHAR_SRC[i];
   })(0);
 
-  // n人ぶんの絵が揃っているときだけキャラ表示にする（1人でも欠けたら装置へ戻す）
-  function monthTransitionCharsReady(n) {
-    for (let i = 0; i < n; i++) { if (!mtCharReady[i]) return false; }
-    return true;
+  // 4枚すべて揃っているときだけキャラ表示にする。
+  // 学年ぶんだけ揃っていれば出す作りにすると、1〜2年はキャラ・3年からは装置と
+  // プレイ中に演出が入れ替わって見えるため、揃うまでは従来の装置で通す（2026-08-09 決定）。
+  function monthTransitionCharsReady() {
+    return mtCharReady.every(Boolean);
   }
 
   // 画像は毎コマ作り直さず、最初に組んでから transform だけを差し替える
@@ -1632,7 +1637,7 @@
     const box = $('#month-transition-diabolo');
     if (!box) return;
     const year = Math.min(MONTH_TRANSITION_MAX_DIABOLO, Math.max(1, Math.ceil(turn / 12)));
-    const useChars = monthTransitionCharsReady(year);
+    const useChars = monthTransitionCharsReady();
     box.dataset.count = String(year);
     box.classList.toggle('has-chars', useChars);
     stopMonthTransitionFrames();
@@ -1763,7 +1768,7 @@
       el('div', 'board-label', '現在の能力値'),
       skillTable(state.skills),
       skillRadarGrid(state.skills),
-      meterRow('演技構成', state.composition)
+      meterRow('演技構成', state.composition, { wideLabel: true })
     );
   }
 
@@ -1871,7 +1876,12 @@
       (state.injuredTurns > 0 ? '　⚠ 怪我の影響でミス率+15%！' : '');
 
     const emptyHint = el('div', 'entry-empty', '最低1部門を選択してください');
-    const updateHint = () => { emptyHint.style.display = entrySelection.length > 0 ? 'none' : ''; };
+    // 未選択のうちはエントリーボタンを押せない見た目にする（押しても無反応だと理由が分からないため）
+    const updateHint = () => {
+      const none = entrySelection.length === 0;
+      emptyHint.style.display = none ? '' : 'none';
+      $('#btn-entry-go').disabled = none;
+    };
 
     // 大会種別に対応する部門だけを対象に（OIDC/AJDC=総合＋スペシャ、静岡=テクニカル＋パフォーマンス）
     // スペシャリスト部門は該当ジャンルが未解禁なら出場不可（総合は常に出場可）
