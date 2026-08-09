@@ -17,3 +17,6 @@
 
 # チラシPDFはHTMLから再生成できるため追跡しない
 /docs/promo/*.pdf
+
+# チラシPPTXも生成物のため追跡しない（docs/promo/pptx-build/ から再生成できる）
+/docs/promo/*.pptx
