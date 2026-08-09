@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>４８ヶ月のディアボロ A4チラシ</title>
+<!--
+  掲示・置きチラシ用 A4カラー片面（家庭用プリンター想定・2026-08-09）
+  ねらい: 通りすがりの人がQRを読んで、その場で遊び始めること。
+  設計の骨格は「48ヶ月＝48マス」。タイトル画の“右上へ伸びる成長の線”と紙面の流れを合わせている。
+  印刷: Chrome/Safari で「A4・余白なし(またはデフォルト)・背景のグラフィックON・拡大縮小100%」。
+        縁なし印刷に依存しないよう、外周に13mmの余白を確保している。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F4EDE0;
+    --ink:   #22355F;
+    --ink-soft: #5B6B8C;
+    --red:   #D8452F;
+    --yellow:#EFB42B;
+    --teal:  #7FC4B4;
+    --sky:   #6EA8E0;
+  }
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #fff; }
+  body {
+    font-family: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'ヒラギノ丸ゴ ProN W4', sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .sheet {
+    width: 210mm; height: 297mm; padding: 13mm 13mm 11mm;
+    margin: 0 auto; background: #fff;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---- 見出し ---- */
+  .kicker {
+    display: inline-block; align-self: flex-start;
+    padding: 1.6mm 3.4mm; border-radius: 999px;
+    background: var(--ink); color: #fff;
+    font-size: 3.1mm; font-weight: 800; letter-spacing: .12em;
+  }
+  h1 {
+    margin-top: 3.2mm;
+    font-size: 17.5mm; font-weight: 900; line-height: 1.02; letter-spacing: .01em;
+  }
+  h1 .num { color: var(--red); }
+  .lead {
+    margin-top: 2.6mm; font-size: 4.3mm; font-weight: 700; color: var(--ink-soft); letter-spacing: .02em;
+  }
+  /* 見出しの右余白に、実在の大会名と部門を置いてディアボロ経験者にも届かせる */
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 8mm; }
+  .head-side { flex: 0 0 52mm; padding-bottom: 1.5mm; border-left: .5mm solid #DCE2EC; padding-left: 5mm; }
+  .side-label { font-size: 2.9mm; font-weight: 900; color: var(--red); letter-spacing: .08em; }
+  .head-side ul { list-style: none; margin: 1.2mm 0 3mm; }
+  .head-side li { font-size: 3.3mm; font-weight: 800; line-height: 1.55; }
+  .side-note { margin-top: 1.2mm; font-size: 2.8mm; font-weight: 700; line-height: 1.5; color: var(--ink-soft); }
+
+  /* ---- タイトル画（下辺を白へ溶かして紙になじませる） ---- */
+  .art { position: relative; margin-top: 3.5mm; height: 80mm; overflow: hidden; border-radius: 3mm; }
+  /* 左下のディアボロから右上へ子どもが育っていく並びが主役。切り落とさない位置に寄せる */
+  .art img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 38%; display: block; }
+  .art::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 26mm;
+    background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, #fff 92%);
+  }
+
+  /* ---- 問いかけ ---- */
+  .hook {
+    margin-top: -2mm; text-align: center;
+    font-size: 8.6mm; font-weight: 900; line-height: 1.25;
+  }
+  .hook em { font-style: normal; color: var(--red); }
+
+  /* ---- 48マスのカレンダー帯（この作品の骨格そのもの） ---- */
+  .calendar { margin-top: 5mm; }
+  .cal-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 3.2mm; font-weight: 800; color: var(--ink-soft); letter-spacing: .04em;
+  }
+  .cal-grid { margin-top: 2.2mm; display: grid; grid-template-columns: 9mm repeat(12, 1fr); gap: 1.1mm; }
+  .cal-month { font-size: 2.5mm; font-weight: 800; color: var(--ink-soft); text-align: center; }
+  .cal-corner { font-size: 2.5mm; }
+  .cal-year {
+    display: flex; align-items: center; font-size: 3mm; font-weight: 900; color: var(--ink);
+  }
+  .cell {
+    height: 6.2mm; border-radius: 1.2mm;
+    background: var(--cream); border: .35mm solid #E2D8C6;
+  }
+  .cell.contest { background: var(--red); border-color: var(--red); }
+  .cell.contest.sub { background: var(--yellow); border-color: var(--yellow); }
+  .cal-legend {
+    margin-top: 2.4mm; display: flex; gap: 5mm; align-items: center;
+    font-size: 3mm; font-weight: 700; color: var(--ink-soft);
+  }
+  .swatch { display: inline-block; width: 3.4mm; height: 3.4mm; border-radius: .9mm; vertical-align: -.5mm; margin-right: 1.4mm; }
+  .swatch.red { background: var(--red); }
+  .swatch.yellow { background: var(--yellow); }
+  .swatch.cream { background: var(--cream); border: .35mm solid #E2D8C6; }
+
+  /* ---- 3つの要点 ---- */
+  .points { margin-top: 5.5mm; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .point { border-top: .8mm solid var(--ink); padding-top: 2.4mm; }
+  .point .no { font-family: 'Baloo 2', sans-serif; font-size: 5mm; font-weight: 800; color: var(--red); line-height: 1; }
+  .point h3 { margin-top: 1.2mm; font-size: 4.2mm; font-weight: 900; letter-spacing: .01em; }
+  .point p { margin-top: 1.4mm; font-size: 3.1mm; font-weight: 500; line-height: 1.55; color: var(--ink-soft); }
+
+  /* ---- QR（この紙の目的。一番大きな行動導線） ---- */
+  .cta {
+    margin-top: auto; display: flex; align-items: center; gap: 6mm;
+    padding: 5mm 6mm; border: 1mm solid var(--ink); border-radius: 4mm; background: var(--cream);
+  }
+  .cta-qr { width: 34mm; height: 34mm; flex: 0 0 34mm; background: #fff; padding: 1.5mm; border-radius: 1.5mm; }
+  .cta-qr img { width: 100%; height: 100%; display: block; }
+  .cta-text { flex: 1; }
+  .cta-text .big { font-size: 6.6mm; font-weight: 900; line-height: 1.25; }
+  .cta-text .url {
+    margin-top: 2mm; font-family: 'Baloo 2', sans-serif; font-size: 3.5mm; font-weight: 700;
+    color: var(--ink); word-break: break-all;
+  }
+  .cta-text .note { margin-top: 1.6mm; font-size: 3.1mm; font-weight: 700; color: var(--ink-soft); }
+  .foot { margin-top: 3mm; text-align: right; font-size: 2.6mm; font-weight: 700; color: #96A2B8; }
+
+  @media print {
+    body { background: #fff; }
+    .sheet { margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <span class="kicker">インストール不要・無料・スマホでそのまま</span>
+
+  <div class="head">
+    <div class="head-main">
+      <h1><span class="num">４８</span>ヶ月の<br>ディアボロ</h1>
+      <p class="lead">ディアボロ部の4年間を、あなたが育てるブラウザゲーム。</p>
+    </div>
+    <div class="head-side">
+      <div class="side-label">出場する大会</div>
+      <ul>
+        <li>OIDC</li>
+        <li>静岡ディアボロコンテスト</li>
+        <li>AJDC</li>
+        <li>世界大会</li>
+      </ul>
+      <div class="side-label">部門</div>
+      <p class="side-note">個人総合／水平1D／垂直1D／2D／3D<br>テクニカル／パフォーマンス</p>
+    </div>
+  </div>
+
+  <div class="art">
+    <img src="../../assets/title/title-card-combo-trail-v4-people-3d.png" alt="">
+  </div>
+
+  <p class="hook">その<em>48ヶ月</em>を、<br>あなたなら何に使う？</p>
+
+  <section class="calendar">
+    <div class="cal-head">
+      <span>入学から卒業までの48ヶ月＝全24ターン（1ターンで2ヶ月進む）</span>
+    </div>
+    <div class="cal-grid">
+      <span class="cal-corner"></span>
+      <span class="cal-month">4</span><span class="cal-month">5</span><span class="cal-month">6</span>
+      <span class="cal-month">7</span><span class="cal-month">8</span><span class="cal-month">9</span>
+      <span class="cal-month">10</span><span class="cal-month">11</span><span class="cal-month">12</span>
+      <span class="cal-month">1</span><span class="cal-month">2</span><span class="cal-month">3</span>
+
+      <span class="cal-year">1年</span>
+      <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+      <i class="cell contest"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+      <i class="cell"></i><i class="cell contest sub"></i><i class="cell"></i><i class="cell contest"></i>
+
+      <span class="cal-year">2年</span>
+      <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+      <i class="cell contest"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+      <i class="cell"></i><i class="cell contest sub"></i><i class="cell"></i><i class="cell contest"></i>
+
+      <span class="cal-year">3年</span>
+      <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+      <i class="cell contest"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+      <i class="cell"></i><i class="cell contest sub"></i><i class="cell"></i><i class="cell contest"></i>
+
+      <span class="cal-year">4年</span>
+      <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+      <i class="cell contest"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+      <i class="cell"></i><i class="cell contest sub"></i><i class="cell"></i><i class="cell contest"></i>
+    </div>
+    <div class="cal-legend">
+      <span><i class="swatch red"></i>OIDC・AJDC</span>
+      <span><i class="swatch yellow"></i>静岡DC</span>
+      <span><i class="swatch cream"></i>練習・勉強・休養を選ぶ月</span>
+    </div>
+  </section>
+
+  <section class="points">
+    <div class="point">
+      <div class="no">01</div>
+      <h3>練習を3枠、組む</h3>
+      <p>水平1D・垂直1D・2D・3D。難易度・新奇性・操作安定度のどれを伸ばすか、毎月あなたが決める。疲れがたまれば失敗も怪我もある。</p>
+    </div>
+    <div class="point">
+      <div class="no">02</div>
+      <h3>大会で、部門を選ぶ</h3>
+      <p>得意分野ひとつで勝負するか、総合で戦うか。育て方がそのまま、順位と得点の内訳にあらわれる。</p>
+    </div>
+    <div class="point">
+      <div class="no">03</div>
+      <h3>卒業カードが、残る</h3>
+      <p>4年間の育て方に応じた称号と能力のカードが図鑑に残る。次にプレイするときは、先輩として後輩の前に現れる。</p>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="cta-qr"><img src="qr-diabolo.svg" alt="ゲームのQRコード"></div>
+    <div class="cta-text">
+      <div class="big">スマホのカメラで<br>読みこめば、すぐ遊べる。</div>
+      <div class="url">aratama-ship-it.github.io/diabolo4yeargame/</div>
+      <div class="note">アプリの導入も会員登録も不要。途中でやめても、続きから遊べます。</div>
+    </div>
+  </section>
+
+  <p class="foot">４８ヶ月のディアボロ　v0.9</p>
+
+</div>
+</body>
+</html>
