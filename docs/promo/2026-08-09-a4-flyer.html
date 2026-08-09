@@ -49,19 +49,12 @@
   .kicker.beta { background: var(--red); letter-spacing: .1em; }
   h1 {
     margin-top: 3.2mm;
-    font-size: 17.5mm; font-weight: 900; line-height: 1.02; letter-spacing: .01em;
+    font-size: 21mm; font-weight: 900; line-height: 1.02; letter-spacing: .01em;
   }
   h1 .num { color: var(--red); }
   .lead {
-    margin-top: 2.6mm; font-size: 4.3mm; font-weight: 700; color: var(--ink-soft); letter-spacing: .02em;
+    margin-top: 3mm; font-size: 5mm; font-weight: 700; color: var(--ink-soft); letter-spacing: .02em;
   }
-  /* 見出しの右余白に、実在の大会名と部門を置いてディアボロ経験者にも届かせる */
-  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 8mm; }
-  .head-side { flex: 0 0 52mm; padding-bottom: 1.5mm; border-left: .5mm solid #DCE2EC; padding-left: 5mm; }
-  .side-label { font-size: 2.9mm; font-weight: 900; color: var(--red); letter-spacing: .08em; }
-  .head-side ul { list-style: none; margin: 1.2mm 0 3mm; }
-  .head-side li { font-size: 3.3mm; font-weight: 800; line-height: 1.55; }
-  .side-note { margin-top: 1.2mm; font-size: 2.8mm; font-weight: 700; line-height: 1.5; color: var(--ink-soft); }
 
   /* ---- タイトル画（下辺を白へ溶かして紙になじませる） ---- */
   .art { position: relative; margin-top: 4mm; height: 104mm; overflow: hidden; border-radius: 3mm; }
@@ -74,6 +67,9 @@
 
   /* ---- 問いかけ ---- */
   .hook {
+    /* .artがposition:relativeのため、そのままだと画像が前面に来て文字が欠ける。
+       重ねるのは文字が上、が正しい関係なのでこちらを前面に出す。 */
+    position: relative; z-index: 1;
     margin-top: -2mm; text-align: center;
     font-size: 9.4mm; font-weight: 900; line-height: 1.25;
   }
@@ -144,18 +140,7 @@
   <div class="head">
     <div class="head-main">
       <h1><span class="num">４８</span>ヶ月の<br>ディアボロ</h1>
-      <p class="lead">ディアボロ部の4年間を、あなたが育てる育成ゲーム。</p>
-    </div>
-    <div class="head-side">
-      <div class="side-label">出場する大会</div>
-      <ul>
-        <li>OIDC</li>
-        <li>静岡ディアボロコンテスト</li>
-        <li>AJDC</li>
-        <li>世界大会</li>
-      </ul>
-      <div class="side-label">部門</div>
-      <p class="side-note">個人総合／水平1D／垂直1D／2D／3D<br>テクニカル／パフォーマンス</p>
+      <p class="lead">４年間ディアボロ漬けの育成ゲーム。</p>
     </div>
   </div>
 
@@ -171,8 +156,8 @@
 
   <section class="points">
     <div class="point">
-      <h3>卒業カードが、残る</h3>
-      <p>4年間の育て方に応じた称号と能力のカードが図鑑に残る。次にプレイするときは、先輩として後輩の前に現れる。</p>
+      <h3>卒業カードコレクション</h3>
+      <p>4年間の育て方に応じた称号と能力のカードが図鑑に残ります。次にプレイするときは、先輩として後輩の前に現れます。</p>
     </div>
   </section>
 
