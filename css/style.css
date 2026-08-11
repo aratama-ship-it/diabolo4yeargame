@@ -9,7 +9,7 @@
   --cream: #fff8ec;
   --paper: #ffffff;
   --ink: #2b3a67;
-  --ink-soft: #6b7aa8;
+  --ink-soft: #64719c;   /* 補助テキスト。4.5:1確保のため7%濃くした(旧 #6b7aa8 はクリーム地で4.00) */
   --coral: #ff6b6b;
   --coral-deep: #e6504f;
   --sun: #ffd166;
@@ -207,8 +207,13 @@ h2 { font-size: 1.2rem; text-align: center; color: var(--ink); letter-spacing: .
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
 }
+/* 「はじめから」だけコーラルを少し濃く・文字を少し大きく。
+   白文字とのコントラストが 2.49 しかなく、屋外や視力差で読みにくかった。
+   19px/太字にすると WCAG の「大きい文字」扱い(基準3.0)になり、この濃さで 3.18〜3.19。
+   色相はそのまま(7〜12%暗くしただけ)なので、ポップな見た目は変えていない。 */
 #screen-title > button.primary {
-  background: linear-gradient(100deg, rgba(255,107,107,.97), rgba(255,126,104,.97));
+  background: linear-gradient(100deg, rgba(237,100,100,.97), rgba(224,111,92,.97));
+  font-size: 1.2rem;
 }
 @media (max-width: 480px) {
   .title-art-stage { min-height: clamp(150px, 25dvh, 232px); }
