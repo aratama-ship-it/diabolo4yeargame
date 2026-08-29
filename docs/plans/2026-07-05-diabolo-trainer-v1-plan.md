@@ -18,7 +18,7 @@
 - セーブキーは `diabolo-trainer-save-v1` 固定
 - テスト実行は `node tests/test-<module>.js`（Node 18以上、作業ディレクトリはリポジトリルート）
 - 能力項目は仮項目（設計書参照）。将来実データに差し替えるため、能力定義は必ず `data.js` の `DT.DATA.STATS` 経由で参照し、ロジック内にstat IDをハードコードしない（contest.jsの派生値計算のみ例外として明示的にIDを使う）
-- リポジトリルート: `apps/Analyze-app/diabolo-trainer/`（このディレクトリで `git init` する。パスはすべてこのルートからの相対）
+- リポジトリルート: `apps/game-app/diabolo-trainer/`（このディレクトリで `git init` する。パスはすべてこのルートからの相対）
 
 ---
 
@@ -37,7 +37,7 @@
 - [ ] **Step 1: git初期化と.gitignore**
 
 ```bash
-cd "apps/Analyze-app/diabolo-trainer" && git init
+cd "apps/game-app/diabolo-trainer" && git init
 ```
 
 `.gitignore`:

@@ -7,7 +7,7 @@
 //
 // test-simulation.js の playThrough を土台に、実ゲームフローへ寄せた追加:
 //   - 練習直後の怪我判定 rollInjury
-//   - JJF予選(9月・常に参加)→決勝(10月)
+//   - ジャグリング全国大会予選(9月・常に参加)→決勝(10月)
 //   - 状態依存イベント(過労で倒れる=行動キャンセル / 覚醒のきざし=50%で覚醒, 失敗やる気-20)
 require('../js/data.js');
 require('../js/contest.js');
@@ -139,7 +139,7 @@ function playThrough(rng, strat) {
     } else {
       state.didTrain = false; state.didStudy = false;
     }
-    // 練習後スロット: 大会 → JJF → 固定イベント
+    // 練習後スロット: 大会 → ジャグリング全国大会 → 固定イベント
     const contest = DT.contest.contestForTurn(state.turn);
     const wc = DT.contest.worldsContestForTurn(state.turn);
     const jq = DT.contest.jjfQualifierForTurn(state.turn);
@@ -153,7 +153,7 @@ function playThrough(rng, strat) {
       if (q.passed) {
         state.motivation = clamp(state.motivation + DT.DATA.JJF.passMotivation, 0, 100);
         state.jjfFinalist = 1;
-        state.results.push({ name: jq.name, type: 'jjf', division: 'qualifier', divisionLabel: 'JJF予選突破',
+        state.results.push({ name: jq.name, type: 'jjf', division: 'qualifier', divisionLabel: 'ジャグリング全国大会予選突破',
           rank: 1, entrants: 0, points: DT.DATA.JJF.finalistPoints, turn: state.turn, standings: [], rivalMessages: [] });
       } else {
         state.motivation = clamp(state.motivation - 8, 0, 100);

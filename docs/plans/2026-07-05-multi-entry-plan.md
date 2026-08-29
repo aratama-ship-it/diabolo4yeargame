@@ -18,7 +18,7 @@
 - S評価の「全国優勝」は「AJDC**総合部門**優勝」に読み替える
 - セーブキーは `diabolo-trainer-save-v3`。load時に旧キー(v1/v2)を掃除
 - 前回最終レビューのMinor対応を織り込む: execDeductionMaxを実際に使う／大会結果に「調子・審査」行（内訳合計=スコアが成立）／ミス率表示は「1判定あたり」と明記
-- リポジトリルート: apps/Analyze-app/diabolo-trainer/
+- リポジトリルート: apps/game-app/diabolo-trainer/
 
 ---
 

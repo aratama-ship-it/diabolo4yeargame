@@ -170,7 +170,7 @@
   //   実乱数のため個々の大会では稀に80をわずかに下回る（壁化を避けるためsdを残す）。ポイント配分は不変。
   // ポイントのリニア化(2026-07-15): 旧5段階テーブル(1位/2位/3位/上位半分/下位)を廃止し、
   // points は「1位の獲得pt」のみ定義。獲得pt = round(top × (entrants−rank)/(entrants−1))
-  // （1位=top、最下位=0、間は順位に等間隔）。JJF決勝の上位3名ボーナスは別系統のため従来どおり。
+  // （1位=top、最下位=0、間は順位に等間隔）。ジャグリング全国大会決勝の上位3名ボーナスは別系統のため従来どおり。
   const LEVELS = {
     oidc: { base: 72, growth: 1, sd: 12, entrants: 16,
             points: { overall: 40, specialist: 20 } },
@@ -371,14 +371,16 @@
     return DT.DATA.CONTESTS.find(c => c.turn === turn) || null;
   }
 
-  // --- JJF（ジャグリング全国大会・ディアボロ）: 9月予選(参加任意) → 10月決勝(予選突破者のみ) ---
+  // --- ジャグリング全国大会（ディアボロ）: 9月予選(参加任意) → 10月決勝(予選突破者のみ) ---
+  //     表示名は「ジャグリング全国大会」。内部ID・セーブデータのキーは 'jjf' のまま
+  //     （既存セーブとカード図鑑(sp_jjf)が壊れるため、ここは改名しない。2026-08-29）
   function jjfQualifierForTurn(turn) {
     if (DT.DATA.JJF.qualifierTurns.indexOf(turn) < 0) return null;
-    return { turn: turn, type: 'jjf-qualifier', name: Math.ceil(turn / 12) + '年 JJF予選' };
+    return { turn: turn, type: 'jjf-qualifier', name: Math.ceil(turn / 12) + '年 ジャグリング全国大会予選' };
   }
   function jjfFinalForTurn(turn) {
     if (DT.DATA.JJF.finalTurns.indexOf(turn) < 0) return null;
-    return { turn: turn, type: 'jjf', name: Math.ceil(turn / 12) + '年 JJF決勝' };
+    return { turn: turn, type: 'jjf', name: Math.ceil(turn / 12) + '年 ジャグリング全国大会決勝' };
   }
 
   // 予選突破判定: 4ジャンル習熟＋演技構成の「平均」と「最低」で、バランス良く高いかを見る。
@@ -418,7 +420,7 @@
       opponents.map(o => ({ name: o.name, score: o.score })).concat([{ name: state.name, score: p.score, isPlayer: true }])
     );
     const r = {
-      name: contest.name, type: 'jjf', division: 'overall', divisionLabel: 'JJF決勝',
+      name: contest.name, type: 'jjf', division: 'overall', divisionLabel: 'ジャグリング全国大会決勝',
       rank: rank, entrants: jjf.finalEntrants, score: p.score,
       parts: p.parts, rawTotal: p.rawTotal, judgeMod: p.judgeMod, misses: p.misses,
       execDeduction: p.execDeduction, specialDeduction: p.specialDeduction,

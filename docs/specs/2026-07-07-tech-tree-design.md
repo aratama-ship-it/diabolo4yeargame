@@ -1,7 +1,7 @@
 # 技術解禁ツリー（TR）設計書
 
 - 作成日: 2026-07-07
-- 対象: ディアボロ選手育成アプリ（apps/Analyze-app/diabolo-trainer）
+- 対象: ディアボロ選手育成アプリ（apps/game-app/diabolo-trainer）
 - ステータス: 設計（承認待ち）
 
 ## 1. 目的

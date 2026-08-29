@@ -20,3 +20,6 @@
 
 # チラシPPTXも生成物のため追跡しない（docs/promo/pptx-build/ から再生成できる）
 /docs/promo/*.pptx
+
+# アバター検証ページの単体版は生成物（scripts/build-avatar-lab.mjs で再生成できる）
+/design/*-standalone.html

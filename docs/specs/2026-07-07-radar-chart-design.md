@@ -1,7 +1,7 @@
 # 技術レーダーチャート（RC）設計書
 
 - 作成日: 2026-07-07
-- 対象: ディアボロ選手育成アプリ（apps/Analyze-app/diabolo-trainer）
+- 対象: ディアボロ選手育成アプリ（apps/game-app/diabolo-trainer）
 - ステータス: 設計（承認済み → 実装計画へ）
 
 ## 1. 目的

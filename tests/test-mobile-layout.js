@@ -6,6 +6,9 @@ const { test, summary } = require('./harness');
 const css = readFileSync(require.resolve('../css/style.css'), 'utf8');
 const html = readFileSync(require.resolve('../index.html'), 'utf8');
 const app = readFileSync(require.resolve('../js/app.js'), 'utf8');
+const state = readFileSync(require.resolve('../js/state.js'), 'utf8');
+const data = readFileSync(require.resolve('../js/data.js'), 'utf8');
+const events = readFileSync(require.resolve('../js/events.js'), 'utf8');
 const buildWeb = readFileSync(require.resolve('../scripts/build-web.mjs'), 'utf8');
 
 test('MOBILE LAYOUT: iPhone Safariの表示領域にアプリの高さが追従する', () => {
@@ -43,6 +46,101 @@ test('CREATE FLOW: 最終登録前に主人公名を一度だけ変更できる'
   assert.match(app, /registrationRenameUsed\s*=\s*true/);
   assert.match(app, /\$\('#btn-start'\)\.onclick\s*=\s*openRegistration/);
   assert.match(app, /\$\('#btn-registration-confirm'\)\.onclick[\s\S]*?DT\.state\.save\(state\)/);
+});
+
+test('AVATAR: パーツ定義を読み込む', () => {
+  const avatarScript = html.indexOf('js/avatar.js?v=');
+  const appScript = html.indexOf('js/app.js?v=');
+  assert.ok(avatarScript >= 0, 'index.htmlでjs/avatar.jsを読み込む');
+  assert.ok(appScript >= 0, 'index.htmlでjs/app.jsを読み込む');
+  assert.ok(avatarScript < appScript, 'js/avatar.jsをjs/app.jsより前に読み込む');
+});
+
+test('AVATAR: 顔をつくる導線と編集モーダルがある', () => {
+  assert.match(html, /id="btn-avatar-open"/);
+  assert.match(html, /id="avatar-modal"/);
+  assert.match(html, /id="avatar-preview"/);
+  assert.match(html, /id="btn-avatar-done"/);
+});
+
+test('AVATAR: 顔が無い古いセーブは名前から顔を作る', () => {
+  assert.match(app, /function avatarOf\(/);
+  assert.match(app, /DT\.avatar\.fromSeed\(/);
+});
+
+test('AVATAR: 顔の表示はPNG→SVG→絵文字の順に解決する', () => {
+  // mountCharImage は読み込めたときだけ中身を差し替えるので、SVGより後に呼ぶ必要がある。
+  // 逆順にすると、絵を置いてもSVGに上書きされてPNGが出なくなる。
+  [['faceEl', 'ホームのやる気顔'], ['moodMini', '練習メニューのチップ']].forEach(([node, where]) => {
+    const svgAt = app.indexOf('mountAvatar(' + node);
+    const pngAt = app.indexOf('mountCharImage(' + node);
+    assert.ok(svgAt >= 0 && pngAt >= 0, where + 'でSVGとPNGの両方を試すこと');
+    assert.ok(svgAt < pngAt, where + 'はmountAvatarの後にmountCharImageを呼ぶこと');
+  });
+});
+
+test('AVATAR: 経歴を変えても作った顔が消えない', () => {
+  // newCandidate は経歴の変更・引き直しのたびに呼ばれる。ここで顔を作り直すと
+  // せっかく作った顔が消えるので、未作成のときだけ生成して使い回す。
+  assert.match(app, /if \(!candidateAvatar\) candidateAvatar = DT\.avatar\.random\(\)/);
+  assert.match(app, /next\.avatar = candidateAvatar/);
+  // ランダムは代入ではなくObject.assign（代入すると candidate.avatar の参照が切れる）
+  assert.match(app, /Object\.assign\(candidateAvatar, DT\.avatar\.random\(\)\)/);
+  // candidateAvatar への代入は「未作成のときだけ」に限る。無条件の代入を1つでも許すと参照が切れる。
+  const needle = 'candidateAvatar = DT.avatar.random()';
+  for (let at = app.indexOf(needle); at >= 0; at = app.indexOf(needle, at + 1)) {
+    assert.ok(app.slice(Math.max(0, at - 22), at).includes('if (!candidateAvatar) '),
+      'candidateAvatar への random() 代入は if (!candidateAvatar) で守ること');
+  }
+});
+
+test('AVATAR: 絵柄プリセットをコード側で指定しない', () => {
+  // 採用した絵柄は js/avatar.js の defaultProportion 一箇所で決める。
+  // 呼び出し側で proportion を指定すると、絵柄を変えたときに取り残しが出る。
+  assert.doesNotMatch(app, /proportion/);
+});
+
+test('AVATAR: 卒業カードに選手の顔を重ねる', () => {
+  assert.match(app, /'pcard-face'/);
+  assert.match(app, /mountAvatar\(face, avatarOf\(card\)\)/);
+  assert.match(css, /\.pcard-face\s*\{/);
+});
+
+test('AVATAR: 見本ギャラリーには選手の顔を出さない', () => {
+  assert.match(app, /if \(!card\.isGallerySample\)\s*\{[\s\S]*?mountAvatar\(face, avatarOf\(card\)\)/);
+});
+
+test('AVATAR: 書き出したカード画像にも顔を描く', () => {
+  assert.match(app, /function drawCardFace\(/);
+  assert.match(app, /drawCardFace\(\(\) => done\(cv\)\)/);
+  assert.doesNotMatch(app, /^\s*done\(cv\);\s*$/m);
+});
+
+test('AVATAR: 卒業生レコードに顔を保存する', () => {
+  assert.match(state, /function normalizeAlumniEntry\([\s\S]*?avatar:\s*\(entry\.avatar/);
+  assert.match(state, /function addGraduateAlumni\([\s\S]*?avatar:\s*state\.avatar\s*\|\|\s*null/);
+});
+
+test('AVATAR: NPCの顔はCHARACTERSに実在するIDだけ', () => {
+  const npcBlock = app.match(/const NPC_AVATAR\s*=\s*\{([\s\S]*?)\n\s*\};/);
+  const charactersBlock = data.match(/CHARACTERS:\s*\[([\s\S]*?)\n\s*\],\n\s*EVENTS:/);
+  assert.ok(npcBlock, 'NPC_AVATARが必要');
+  assert.ok(charactersBlock, 'CHARACTERSが必要');
+  const npcIds = Array.from(npcBlock[1].matchAll(/^\s+([a-z][a-z0-9_]*):\s*\{/gm), m => m[1]);
+  const characterIds = new Set(Array.from(charactersBlock[1].matchAll(/id:\s*'([^']+)'/g), m => m[1]));
+  assert.equal(npcIds.length, 10, '人物NPC 10人ぶんの顔を定義する');
+  npcIds.forEach(id => assert.ok(characterIds.has(id), id + 'はCHARACTERSに存在すること'));
+  assert.ok(!npcIds.includes('youtube'));
+  assert.ok(!npcIds.includes('malaysia'));
+});
+
+test('AVATAR: 話者の顔もPNG→SVG→名前の順に解決する', () => {
+  const speaker = app.match(/function setEventSpeaker\(name, charId, avatarCfg\)\s*\{([\s\S]*?)\n\s*\}/);
+  assert.ok(speaker, '第3引数avatarCfgを受けるsetEventSpeakerが必要');
+  const svgAt = speaker[1].indexOf('mountAvatar(portrait');
+  const pngAt = speaker[1].indexOf('mountCharImage(portrait');
+  assert.ok(svgAt >= 0 && pngAt >= 0, 'SVGとPNGの両方を解決すること');
+  assert.ok(svgAt < pngAt, 'SVGを置いた後でPNGを優先すること');
 });
 
 test('TITLE ART: 採用イラストを中央に大きく配置し紙吹雪を画面全体へ拡張する', () => {
@@ -108,6 +206,46 @@ test('NAVIGATION: 卒業生名簿はタイトルではなく新入生スカウ�
   assert.match(app, /!?\$\('#screen-create'\)\.classList\.contains\('hidden'\)[\s\S]*?candidate\.activeAlumni\s*=\s*DT\.state\.loadActiveAlumni/);
 });
 
+test('CHAR IMAGE: 画像が無いときは絵文字へフォールバックする仕組みを持つ', () => {
+  assert.match(app, /const CHAR_IMAGES_ENABLED\s*=\s*true/);
+  assert.match(app, /const charImgState\s*=\s*new Map\(\)/);
+  assert.match(app, /function mountCharImage\(container, src, imgClass\)/);
+  assert.match(app, /'ng'/);
+});
+
+test('CHAR IMAGE: 主人公の表情は7状態ぶんのパスを解決できる', () => {
+  assert.match(app, /const HERO_MOOD_KEY\s*=\s*\{/);
+  assert.match(app, /assets\/chars\/hero\/mood-/);
+  assert.match(app, /function heroMoodKey\(state, moodLabel\)[\s\S]*?state\.injuredTurns > 0[\s\S]*?return 'injured'[\s\S]*?state\.awakenTurns > 0[\s\S]*?return 'awaken'/);
+});
+
+test('CHAR IMAGE: イベントの顔は話者IDから引く', () => {
+  assert.match(app, /assets\/chars\/portrait\//);
+  assert.match(app, /function setEventSpeaker\(name, charId, avatarCfg\)/);
+  assert.doesNotMatch(app, /\$\('#event-char'\)\.textContent\s*=/);
+});
+
+test('CHAR IMAGE: 実在しない話者ID（覚醒などの演出用）では画像を探さない', () => {
+  // イベントのcharには'awaken'のような演出用の擬似IDが混ざる。
+  // CHARACTERSに無いIDで画像を取りに行くと、絵を用意しようのない404が毎回出る。
+  assert.match(app, /function charHasPortrait\(charId\)[\s\S]*?DT\.DATA\.CHARACTERS\.some/);
+  assert.match(app, /if \(charHasPortrait\(charId\)\) mountCharImage\(/);
+  const pseudoIds = (events.match(/char: '([a-z_]+)'/g) || [])
+    .map(m => m.replace(/char: '|'/g, ''))
+    .filter(id => !new RegExp("{ id: '" + id + "',[\\s\\S]*?name:").test(data));
+  assert.ok(pseudoIds.includes('awaken'), '擬似IDの検出が効いていること（awakenが拾えるはず）');
+});
+
+test('CHAR IMAGE: 未配置でも配布ビルドが通る', () => {
+  assert.match(buildWeb, /assets\/chars\//);
+  assert.match(buildWeb, /const charAssets\s*=\s*new URL\('assets\/chars\/'[\s\S]*?if\s*\(existsSync\(charAssets\)/);
+});
+
+test('CHAR IMAGE: 画像が付くまで空の丸を出さない', () => {
+  assert.match(css, /\.event-portrait\s*\{\s*display:\s*none;/);
+  assert.match(css, /\.event-portrait\.has-img\s*\{/);
+});
+
 
 test('MONTH TRANSITION: ディアボロは学年の数だけ並ぶ（1年生=1個…4年生=4個）', () => {
   // 生成側: turnLabelと同じ式で学年を出し、最大4個にクランプする
@@ -127,3 +265,22 @@ test('MONTH TRANSITION: ディアボロは学年の数だけ並ぶ（1年生=1�
 });
 
 summary();
+
+test('RENAME: 大会の表示名はジャグリング全国大会に統一する', () => {
+  // 表示に出る文字列に JJF が残っていないこと（内部ID・データキー・関数名は 'jjf' のまま残す）
+  const shown = [app, readFileSync(require.resolve('../js/contest.js'), 'utf8'),
+                 readFileSync(require.resolve('../js/cards.js'), 'utf8')].join('\n');
+  const literals = shown.match(/'[^'\n]*'/g) || [];
+  const bad = literals.filter(t => /JJF/.test(t) && !/^'jjf/.test(t));
+  assert.deepStrictEqual(bad, [], '表示文字列にJJFを残さない: ' + bad.join(' '));
+  // 内部IDは据え置き（改名するとセーブとカード図鑑が壊れる）
+  assert.match(shown, /type: 'jjf'/);
+  assert.match(shown, /sp_jjf/);
+});
+
+test('RENAME: 改称前のセーブの旧ラベルも表示時に読み替える', () => {
+  assert.match(app, /function contestLabel\(text\)[\s\S]*?replace\(\/JJF\/g, 'ジャグリング全国大会'\)/);
+  // divisionLabel を画面に出すところは全て contestLabel を通す
+  const raw = app.match(/[^(]r\.divisionLabel/g) || [];
+  assert.deepStrictEqual(raw, [], 'divisionLabelはcontestLabel()を通して表示する');
+});

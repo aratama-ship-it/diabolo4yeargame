@@ -26,4 +26,14 @@ if (existsSync(loaderAssets)) {
   console.log('assets/loader/ は未配置のため同期をとばしました（切替演出はSVG装置で動きます）。');
 }
 
+// 主人公の表情・イベントの顔チップ。契約書だけで画像が未配置なら、絵文字・名前へ戻るので同期をとばす。
+const charAssets = new URL('assets/chars/', root);
+const heroCharAssets = new URL('assets/chars/hero/', root);
+const portraitCharAssets = new URL('assets/chars/portrait/', root);
+if (existsSync(charAssets) && (existsSync(heroCharAssets) || existsSync(portraitCharAssets))) {
+  cpSync(charAssets, new URL('assets/chars/', output), { recursive: true });
+} else {
+  console.log('assets/chars/ は未配置のため同期をとばしました（絵文字表示のまま動きます）。');
+}
+
 console.log('iOS用Web資産を www/ に同期しました。');

@@ -48,6 +48,7 @@
       totalPoints: Math.max(0, Number(entry.totalPoints) || 0),
       abilityAvg: Math.max(0, Number(entry.abilityAvg) || 0),
       cardTitle: entry.cardTitle || '',
+      avatar: (entry.avatar && typeof entry.avatar === 'object' && !Array.isArray(entry.avatar)) ? entry.avatar : null,
       graduatedAt: Number(entry.graduatedAt) || 0
     };
   }
@@ -159,6 +160,7 @@
       totalPoints: card && card.totalPoints !== undefined ? card.totalPoints : 0,
       abilityAvg: card && card.cp !== undefined ? Math.round(card.cp / 10) : 0,
       cardTitle: card && card.title ? card.title : '',
+      avatar: state.avatar || null,
       graduatedAt: graduatedAt
     });
     profile.pool.push(alumni);

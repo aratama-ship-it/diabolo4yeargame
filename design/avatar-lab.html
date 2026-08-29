@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アバター検証ラボ — ４８ヶ月のディアボロ</title>
+<!-- パーツ組み合わせ式アバターの見た目を確認するための開発用ページ。
+     ゲーム本体には含めない（design/ 配下・build:web の同期対象外）。
+     js/avatar.js をそのまま読むので、ここで見えている絵がゲームに出る絵になる。 -->
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #fff8ec; --paper: #fff; --ink: #2b3a67; --ink-soft: #64719c;
+    --coral: #ff6b6b; --sun: #ffd166; --teal: #2ec4b6; --line: 3px solid var(--ink);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", sans-serif;
+    font-weight: 700; color: var(--ink);
+    background: linear-gradient(180deg, #7ec8f5, #b9e3ff 70%, #d8f1ff);
+    background-attachment: fixed;
+    padding: 20px; display: flex; justify-content: center;
+  }
+  .lab { width: min(1180px, 100%); display: flex; flex-direction: column; gap: 14px; }
+  h1 { font-size: 1.3rem; letter-spacing: .04em; }
+  h1 small { display: block; font-size: .68rem; font-weight: 700; color: #1d4f77; letter-spacing: .1em; }
+  .panel { background: var(--cream); border: var(--line); border-radius: 20px; box-shadow: 0 6px 0 rgba(30,60,110,.28); padding: 14px 16px; }
+  .cols { display: grid; grid-template-columns: 320px 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+
+  /* 主役プレビュー */
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .big { width: 240px; height: 240px; border: var(--line); border-radius: 50%; background: var(--paper); overflow: hidden; box-shadow: 0 5px 0 var(--ink); }
+  .big svg { display: block; width: 100%; height: 100%; }
+  .sizes { display: flex; align-items: flex-end; gap: 12px; }
+  .sizeitem { text-align: center; font-size: .58rem; color: var(--ink-soft); letter-spacing: .06em; }
+  .circ { border: 3px solid var(--ink); border-radius: 50%; overflow: hidden; background: var(--paper); margin: 0 auto 3px; }
+  .circ svg { display: block; width: 100%; height: 100%; }
+  .s64 { width: 64px; height: 64px; }
+  .s44 { width: 44px; height: 44px; }
+  .s18 { width: 18px; height: 18px; border-width: 2px; }
+  .btnrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  button {
+    font-family: inherit; font-weight: 800; cursor: pointer;
+    border: var(--line); border-radius: 14px; background: var(--paper); color: var(--ink);
+    padding: 9px 14px; font-size: .82rem; box-shadow: 0 3px 0 var(--ink);
+  }
+  button:active { transform: translateY(3px); box-shadow: none; }
+  button.primary { background: var(--coral); color: #fff; }
+
+  /* パーツ選択 */
+  .group { margin-bottom: 12px; }
+  .glabel { font-size: .64rem; font-weight: 800; color: var(--ink-soft); letter-spacing: .12em; margin-bottom: 5px; }
+  .opts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .opt {
+    border: 2px solid var(--ink); border-radius: 12px; background: var(--paper);
+    padding: 3px 4px 2px; cursor: pointer; width: 62px; box-shadow: 0 2px 0 var(--ink);
+  }
+  .opt.on { background: var(--sun); }
+  .opt:active { transform: translateY(2px); box-shadow: none; }
+  .opt svg { display: block; width: 100%; height: 52px; }
+  .opt span { display: block; text-align: center; font-size: .5rem; font-weight: 800; line-height: 1.2; padding-top: 1px; }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sw { width: 30px; height: 30px; border: 2px solid var(--ink); border-radius: 9px; cursor: pointer; box-shadow: 0 2px 0 var(--ink); }
+  .sw.on { outline: 3px solid var(--teal); outline-offset: 2px; }
+  .sw:active { transform: translateY(2px); box-shadow: none; }
+
+  /* 表情一覧・用途プレビュー */
+  .moods { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mood { text-align: center; font-size: .58rem; color: var(--ink-soft); }
+  .mood .circ { width: 84px; height: 84px; }
+  .roster { display: flex; flex-direction: column; gap: 6px; }
+  .rrow { display: flex; align-items: center; gap: 9px; background: var(--paper); border: 2px solid #aeb8d2; border-radius: 14px; padding: 6px 10px; box-shadow: 0 3px 0 #aeb8d2; }
+  .rrow .circ { width: 42px; height: 42px; border-width: 2px; margin: 0; flex-shrink: 0; }
+  .rname { font-size: .86rem; font-weight: 800; }
+  .rsub { font-size: .58rem; color: var(--ink-soft); }
+  .cardish { width: 190px; border-radius: 16px; padding: 5px; background: linear-gradient(145deg, #ffd76a, #e8a12b 45%, #fff3c4 60%, #d98a1c); }
+  .cardish-in { background: #0e1830; border-radius: 12px; overflow: hidden; color: #eaf2ff; }
+  .cardish-name { padding: 7px 11px 0; font-size: 1.05rem; font-weight: 900; }
+  .cardish-ep { padding: 0 11px 6px; font-size: .58rem; color: #a9c4ff; }
+  .cardish-art { margin: 0 9px 9px; height: 132px; border-radius: 9px; border: 1px solid #3b4f86; background: radial-gradient(120% 90% at 50% 20%, #233a6e 0, #141f3d 60%); display: grid; place-items: center; overflow: hidden; }
+  .cardish-art svg { width: 132px; height: 132px; display: block; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .note { font-size: .68rem; font-weight: 700; color: var(--ink-soft); line-height: 1.6; word-break: break-all; max-width: 100%; }
+</style>
+</head>
+<body>
+<div class="lab">
+  <div class="panel">
+    <h1>アバター検証ラボ<small>AVATAR PARTS LAB — 開発用。ゲーム本体には含みません</small></h1>
+  </div>
+
+  <div class="cols">
+    <div class="panel stage">
+      <div class="big" id="big"></div>
+      <div class="sizes">
+        <div class="sizeitem"><div class="circ s64" id="p64"></div>イベント64</div>
+        <div class="sizeitem"><div class="circ s44" id="p44"></div>ホーム44</div>
+        <div class="sizeitem"><div class="circ s18" id="p18"></div>チップ18</div>
+      </div>
+      <div class="btnrow">
+        <button class="primary" id="btn-random">🎲 ランダム</button>
+        <button id="btn-reset">最初に戻す</button>
+      </div>
+      <div class="note" id="cfgout"></div>
+    </div>
+
+    <div class="panel" id="picker"></div>
+  </div>
+
+  <div class="panel">
+    <div class="glabel">表情（やる気5段階＋覚醒＋怪我）— 顔は同じまま、目・口・眉の角度だけが変わる</div>
+    <div class="moods" id="moods"></div>
+  </div>
+
+  <div class="panel">
+    <div class="glabel">ゲーム内での見え方</div>
+    <div class="row">
+      <div>
+        <div class="note" style="margin-bottom:6px">卒業カードの中央アート</div>
+        <div class="cardish"><div class="cardish-in">
+          <div class="cardish-name" id="cardname">主人公</div>
+          <div class="cardish-ep">— 4年間を駆け抜けた選手 —</div>
+          <div class="cardish-art" id="cardart"></div>
+        </div></div>
+      </div>
+      <div style="flex:1; min-width:260px">
+        <div class="note" style="margin-bottom:6px">卒業生名簿（顔つきの行）</div>
+        <div class="roster" id="roster"></div>
+        <div class="note" style="margin-top:8px">
+          ↑ アバター未設定の古い卒業生も、名前から決まった顔が出る（fromSeed）。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="glabel">NPCプリセット案（同じパーツで組む。あとからPNGを置けばそちらが優先される設計）</div>
+    <div class="roster" id="npcs"></div>
+  </div>
+</div>
+
+<script src="../js/avatar.js"></script>
+<script>
+(function () {
+  const A = window.DT.avatar;
+  let cfg = A.defaults();
+
+  const $ = s => document.querySelector(s);
+  const setSvg = (el, config, opts) => { el.innerHTML = A.svgString(config, opts); };
+
+  function renderPreview() {
+    setSvg($('#big'), cfg, { bg: '#fff' });
+    setSvg($('#p64'), cfg, {});
+    setSvg($('#p44'), cfg, {});
+    setSvg($('#p18'), cfg, {});
+    setSvg($('#cardart'), cfg, { body: true });
+    $('#cfgout').textContent = JSON.stringify(cfg);
+    A.MOOD_KEYS.forEach(k => {
+      const box = document.getElementById('mood-' + k);
+      if (box) setSvg(box, cfg, { mood: k });
+    });
+    document.querySelectorAll('.opt').forEach(o => {
+      o.classList.toggle('on', cfg[o.dataset.slot] === Number(o.dataset.index));
+    });
+    document.querySelectorAll('.sw').forEach(o => {
+      o.classList.toggle('on', cfg[o.dataset.slot] === Number(o.dataset.index));
+    });
+  }
+
+  // --- パーツ選択UI（各候補は、その候補だけを反映した顔をサムネイルに出す） ---
+  function buildPicker() {
+    const wrap = $('#picker');
+    wrap.innerHTML = '';
+    A.SLOTS.forEach(slot => {
+      const g = document.createElement('div');
+      g.className = 'group';
+      const lab = document.createElement('div');
+      lab.className = 'glabel';
+      lab.textContent = slot.label;
+      g.appendChild(lab);
+      const opts = document.createElement('div');
+      opts.className = 'opts';
+      slot.list.forEach((item, i) => {
+        const b = document.createElement('button');
+        b.className = 'opt';
+        b.dataset.slot = slot.key;
+        b.dataset.index = i;
+        const preview = Object.assign({}, cfg);
+        preview[slot.key] = i;
+        b.innerHTML = A.svgString(preview, { body: false }) + '<span>' + item.label + '</span>';
+        b.onclick = () => { cfg[slot.key] = i; buildPicker(); renderPreview(); };
+        opts.appendChild(b);
+      });
+      g.appendChild(opts);
+      wrap.appendChild(g);
+    });
+    A.COLOR_SLOTS.forEach(slot => {
+      const g = document.createElement('div');
+      g.className = 'group';
+      const lab = document.createElement('div');
+      lab.className = 'glabel';
+      lab.textContent = slot.label;
+      g.appendChild(lab);
+      const sws = document.createElement('div');
+      sws.className = 'swatches';
+      slot.list.forEach((color, i) => {
+        const b = document.createElement('button');
+        b.className = 'sw';
+        b.style.background = color;
+        b.dataset.slot = slot.key;
+        b.dataset.index = i;
+        b.title = color;
+        b.onclick = () => { cfg[slot.key] = i; buildPicker(); renderPreview(); };
+        sws.appendChild(b);
+      });
+      g.appendChild(sws);
+      wrap.appendChild(g);
+    });
+  }
+
+  function buildMoods() {
+    const box = $('#moods');
+    const labels = { best: '絶好調', good: '好調', normal: '普通', bad: '不調', worst: '絶不調', awaken: '覚醒', injured: '怪我' };
+    box.innerHTML = '';
+    A.MOOD_KEYS.forEach(k => {
+      const d = document.createElement('div');
+      d.className = 'mood';
+      d.innerHTML = '<div class="circ" id="mood-' + k + '"></div>' + (labels[k] || k);
+      box.appendChild(d);
+    });
+  }
+
+  function buildRoster() {
+    const people = [
+      ['田村 さき', 'ショーマン型 / 音はめ'],
+      ['宮下 れん', 'テクニシャン型 / ピルエット'],
+      ['小柳 はる', 'イノベーター型 / FTS'],
+      ['工藤まさし', 'テクニシャン型 / ハイトス'],
+    ];
+    const box = $('#roster');
+    box.innerHTML = '';
+    people.forEach(([name, sub]) => {
+      const row = document.createElement('div');
+      row.className = 'rrow';
+      const c = document.createElement('div');
+      c.className = 'circ';
+      c.innerHTML = A.svgString(A.fromSeed(name), {});
+      row.appendChild(c);
+      const meta = document.createElement('div');
+      meta.innerHTML = '<div class="rname">' + name + '</div><div class="rsub">' + sub + '</div>';
+      row.appendChild(meta);
+      box.appendChild(row);
+    });
+  }
+
+  function buildNpcs() {
+    const npcs = [
+      ['野中コーチ', '部の指導者・元世界チャンピオン'],
+      ['コースケ', '同期のムードメーカー'],
+      ['美琴先輩', '理論派の先輩'],
+      ['志音', '同学年の天才ライバル'],
+      ['魁人', 'AJDC連覇中の王者'],
+      ['大道芸人ジョージ', '流しの大道芸人'],
+    ];
+    const box = $('#npcs');
+    box.innerHTML = '';
+    npcs.forEach(([name, sub]) => {
+      const row = document.createElement('div');
+      row.className = 'rrow';
+      const c = document.createElement('div');
+      c.className = 'circ';
+      c.innerHTML = A.svgString(A.fromSeed(name), {});
+      row.appendChild(c);
+      const meta = document.createElement('div');
+      meta.innerHTML = '<div class="rname">' + name + '</div><div class="rsub">' + sub + '（seedによる仮の顔。実際は手で決める）</div>';
+      row.appendChild(meta);
+      box.appendChild(row);
+    });
+  }
+
+  $('#btn-random').onclick = () => { cfg = A.random(); buildPicker(); renderPreview(); };
+  $('#btn-reset').onclick = () => { cfg = A.defaults(); buildPicker(); renderPreview(); };
+
+  buildPicker();
+  buildMoods();
+  buildRoster();
+  buildNpcs();
+  renderPreview();
+})();
+</script>
+</body>
+</html>

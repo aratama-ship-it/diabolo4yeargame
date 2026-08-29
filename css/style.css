@@ -21,6 +21,10 @@
   --pop-shadow: 0 4px 0 var(--ink);
   --pop-shadow-sm: 0 3px 0 var(--ink);
   --radius: 18px;
+  --dur-tap: 80ms; --dur-pop: 260ms; --dur-row: 380ms; --stagger-row: 140ms;
+  --dur-stamp: 340ms; --dur-count: 500ms; --dur-fill: 450ms; --dur-radar: 320ms;
+  --dur-enter: 180ms;
+  --ease-pop: cubic-bezier(.34,1.56,.64,1); --ease-stamp: cubic-bezier(.2,1.7,.35,1);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 button { font-family: inherit; cursor: pointer; }
@@ -66,7 +70,9 @@ body {
   display: flex; flex-direction: column;
   gap: 6px; padding: 12px 14px 10px;
   overflow-y: auto;
+  animation: screen-in var(--dur-enter) ease-out;
 }
+@keyframes screen-in { from { opacity: 0; transform: translateY(8px); } }
 .screen.hidden { display: none; }
 .hidden { display: none !important; }
 
@@ -93,7 +99,11 @@ body {
 
 /* ---------- 見出し・共通テキスト ---------- */
 h1 { font-size: 1.7rem; text-align: center; color: var(--coral-deep); letter-spacing: .04em; }
-h2 { font-size: 1.2rem; text-align: center; color: var(--ink); letter-spacing: .04em; }
+/* 見出しは2行になるとき行の長さを均す。日本語はどこでも改行できるので、
+   放っておくと「…予選（9 / 月）」のように括弧の途中で割れる（2026-08-29 大会名の改称で発生） */
+h2 { font-size: 1.2rem; text-align: center; color: var(--ink); letter-spacing: .04em; text-wrap: balance; }
+/* 大会名が長いエントリー画面だけ、括弧書きの月がちぎれないよう1文字ぶん詰める */
+#entry-title { font-size: 1.12rem; line-height: 1.35; }
 .subtitle { text-align: center; color: var(--ink-soft); font-size: .82rem; }
 .title-manual {
   margin-top: 6px;
@@ -164,14 +174,18 @@ h2 { font-size: 1.2rem; text-align: center; color: var(--ink); letter-spacing: .
   background: var(--tc);
   opacity: .56;
   transform: rotate(var(--tr, 18deg));
+  animation: tc-drift var(--tc-dur, 7s) ease-in-out var(--tc-delay, 0s) infinite alternate;
 }
+.title-confetti i:nth-child(2n) { --tc-dur: 8.5s; --tc-delay: -2.4s; --tc-dx: -3px; }
+.title-confetti i:nth-child(3n) { --tc-dur: 6.2s; --tc-delay: -4.1s; }
+.title-confetti i:nth-child(4n+1) { --tc-dur: 5.5s; --tc-delay: -1.2s; --tc-dx: 4px; }
 .title-confetti i:nth-child(4n+2) { --tc: #f4aa14; }
 .title-confetti i:nth-child(4n+3) { --tc: #42b9c2; }
 .title-confetti i:nth-child(4n) { --tc: #6ea8d9; }
 .title-confetti i:nth-child(5n) {
   width: 7px;
   height: 7px;
-  transform: rotate(45deg);
+  --tr: 45deg;
 }
 .title-confetti i:nth-child(6n) {
   width: 25px;
@@ -179,6 +193,10 @@ h2 { font-size: 1.2rem; text-align: center; color: var(--ink); letter-spacing: .
   background: transparent;
   border-top: 3px solid var(--tc);
   border-radius: 50%;
+}
+@keyframes tc-drift {
+  from { transform: translate3d(0, -4px, 0) rotate(var(--tr, 18deg)); }
+  to   { transform: translate3d(var(--tc-dx, 3px), 7px, 0) rotate(calc(var(--tr, 18deg) + 7deg)); }
 }
 .tc-1 { left: 5%; top: 9%; --tr: -20deg; }
 .tc-2 { left: 88%; top: 12%; --tr: 26deg; }
@@ -496,6 +514,87 @@ select:focus { outline: none; box-shadow: var(--pop-shadow-sm); }
 .registration-actions button.primary { background: var(--coral); color: #fff; }
 .registration-actions button:active { transform: translateY(3px); box-shadow: none; }
 
+/* 顔の器（SVGアバター）。PNG版(.has-img)と同じ扱いにする */
+.mood-face.has-avatar { padding: 0; overflow: hidden; background: none; }
+.mood-face.has-avatar svg,
+.mood-mini.has-avatar svg { width: 100%; height: 100%; display: block; }
+#trainmenu-mood .mood-mini.has-avatar {
+  width: 18px; height: 18px; border: 2px solid var(--ink); border-radius: 50%;
+  overflow: hidden; flex-shrink: 0;
+}
+
+/* スカウト画面の入口 */
+.avatar-row {
+  display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+  font-family: inherit; color: var(--ink); cursor: pointer;
+}
+.avatar-row:active { transform: translateY(3px); box-shadow: none; }
+.avatar-row-face {
+  width: 54px; height: 54px; flex-shrink: 0;
+  border: 2px solid var(--ink); border-radius: 50%; overflow: hidden; background: var(--paper);
+}
+.avatar-row-face svg { width: 100%; height: 100%; display: block; }
+.avatar-row-meta { flex: 1; min-width: 0; }
+.avatar-row-meta b { display: block; font-size: .95rem; font-weight: 800; }
+.avatar-row-meta small { display: block; font-size: .58rem; font-weight: 700; color: var(--ink-soft); }
+.avatar-row-arrow { font-size: 1.1rem; font-weight: 800; color: var(--ink-soft); }
+
+/* 登録確認の顔 */
+.registration-face {
+  width: 78px; height: 78px; margin: 0 auto 4px;
+  border: var(--line); border-radius: 50%; overflow: hidden; background: var(--paper);
+  box-shadow: var(--pop-shadow-sm);
+}
+.registration-face svg { width: 100%; height: 100%; display: block; }
+
+/* 顔エディタ */
+.avatar-modal-card { max-height: 92%; }
+.avatar-preview { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 2px 16px 8px; flex-shrink: 0; }
+.avatar-preview-face {
+  width: 124px; height: 124px;
+  border: var(--line); border-radius: 50%; overflow: hidden; background: var(--paper);
+  box-shadow: var(--pop-shadow);
+}
+.avatar-preview-face svg { width: 100%; height: 100%; display: block; }
+.avatar-random {
+  width: 48px; height: 48px; font-size: 1.3rem;
+  border: var(--line); border-radius: 14px; background: var(--sun); color: var(--ink);
+  box-shadow: var(--pop-shadow-sm);
+}
+.avatar-random:active { transform: translateY(3px); box-shadow: none; }
+.apart { display: flex; flex-direction: column; gap: 4px; }
+.apart-label { font-size: .62rem; font-weight: 800; color: var(--ink-soft); letter-spacing: .1em; }
+/* 候補は折り返して全部見せる。横スクロールにすると隠れた候補に気づけないため
+   （2026-08-29 本人指摘で変更）。列数は幅に応じて自動、余った幅は候補を大きくして埋める。 */
+.apart-opts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 7px; padding: 1px 0 3px;
+}
+.apart-opts.is-colors { grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 8px; }
+.apart-opt {
+  width: 100%; aspect-ratio: 1; padding: 0;
+  border: 2px solid var(--ink); border-radius: 50%; overflow: hidden; background: var(--paper);
+}
+.apart-opt svg { width: 100%; height: 100%; display: block; }
+.apart-opt.on { outline: 3px solid var(--teal); outline-offset: 2px; }
+.apart-sw {
+  width: 100%; aspect-ratio: 1;
+  border: 2px solid var(--ink); border-radius: 10px; box-shadow: 0 2px 0 var(--ink);
+}
+.apart-sw.on { outline: 3px solid var(--teal); outline-offset: 2px; }
+.apart-sw:active { transform: translateY(2px); box-shadow: none; }
+.avatar-savebar {
+  flex-shrink: 0; padding: 10px 14px max(14px, env(safe-area-inset-bottom));
+  border-top: 2px dashed #bdc6dd; background: var(--cream);
+}
+.avatar-savebar button {
+  width: 100%; padding: 12px; border: var(--line); border-radius: 14px;
+  background: var(--coral); color: #fff; font-family: inherit; font-size: 1rem; font-weight: 800;
+  box-shadow: var(--pop-shadow-sm);
+}
+.avatar-savebar button:active { transform: translateY(3px); box-shadow: none; }
+
 /* 学年ごとのホーム背景（識別しやすいよう淡く色分け。カードは白なので可読性維持） */
 #screen-home.year-1 { background: repeating-linear-gradient(45deg, rgba(122,199,79,.05) 0 14px, transparent 14px 28px), #f2fbe9; }
 #screen-home.year-2 { background: repeating-linear-gradient(45deg, rgba(77,150,255,.06) 0 14px, transparent 14px 28px), #e9f3ff; }
@@ -565,6 +664,12 @@ select:focus { outline: none; box-shadow: var(--pop-shadow-sm); }
   background: #e6eaf4; color: var(--ink-soft); font-size: .82rem; font-weight: 800;
 }
 .alumni-roster-row.selected .alumni-pick { background: var(--teal); color: #fff; }
+/* 卒業生名簿の顔 */
+.alumni-face {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 2px solid var(--ink); border-radius: 50%; overflow: hidden; background: var(--paper);
+}
+.alumni-face svg { width: 100%; height: 100%; display: block; }
 .alumni-roster-meta { min-width: 0; display: flex; flex: 1; flex-direction: column; gap: 2px; }
 .alumni-roster-name { display: flex; align-items: center; gap: 6px; font-size: .9rem; font-weight: 800; }
 .alumni-origin {
@@ -620,6 +725,8 @@ select:focus { outline: none; box-shadow: var(--pop-shadow-sm); }
   display: grid; place-items: center;
   background: #fff2cf; border: var(--line); border-radius: 50%;
 }
+.pb-mood .mood-face.has-img { padding: 0; overflow: hidden; background: none; }
+.mood-face-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pb-mood .mood-label { font-size: .74rem; font-weight: 800; color: var(--coral-deep); margin-top: 2px; }
 .pb-mood .mood-note { font-size: .54rem; color: var(--ink-soft); }
 .pb-mood .mood-awaken {
@@ -642,7 +749,7 @@ select:focus { outline: none; box-shadow: var(--pop-shadow-sm); }
 .meter.wide-label { grid-template-columns: 5em 1fr 2.4em; }
 .meter .m-val { text-align: right; font-size: .8rem; }
 .gauge { height: 12px; border: 2px solid var(--ink); border-radius: 999px; background: #eef1fa; overflow: hidden; }
-.gauge > span { display: block; height: 100%; border-radius: 999px 0 0 999px; background: linear-gradient(90deg, var(--teal), var(--sun)); }
+.gauge > span { display: block; height: 100%; border-radius: 999px 0 0 999px; background: linear-gradient(90deg, var(--teal), var(--sun)); transition: width var(--dur-fill) ease-out; }
 .gauge.warn > span { background: linear-gradient(90deg, var(--sun), var(--coral)); }
 
 /* ---------- 詳細リンク ---------- */
@@ -790,6 +897,12 @@ select:focus { outline: none; box-shadow: var(--pop-shadow-sm); }
 .sub-header .chip { margin-left: auto; }
 
 /* ---------- 練習メニュー画面 ---------- */
+#trainmenu-mood .mood-mini { display: inline-flex; align-items: center; justify-content: center; }
+#trainmenu-mood .mood-mini.has-img {
+  width: 18px; height: 18px; border: 2px solid var(--ink); border-radius: 50%;
+  overflow: hidden; flex-shrink: 0;
+}
+.mood-mini-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .slot-board { display: flex; flex-direction: column; gap: 6px; }
 .slot-row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .slot {
@@ -804,6 +917,8 @@ select:focus { outline: none; box-shadow: var(--pop-shadow-sm); }
 .slot.filled.m-novelty    { background: #dbe8ff; border-color: var(--blue); }
 .slot.filled.m-control    { background: #d1f4ef; border-color: var(--teal); }
 .slot.filled.routine      { background: #ffeec2; border-color: #e0a500; }
+.slot.just-set { animation: slot-pop 240ms var(--ease-pop); }
+@keyframes slot-pop { 0% { transform: scale(.82); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
 .slot .s-genre { font-size: .58rem; padding: 1px 8px; border-radius: 999px; border: 2px solid var(--ink); background: var(--sun); }
 .slot .s-genre.routine-tag { background: #ffdd8a; }
 .slot .s-x {
@@ -839,12 +954,14 @@ button.go-btn {
 }
 button.go-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
 button.go-btn:disabled { background: var(--lock); color: #8a90a8; box-shadow: none; transform: translateY(4px); cursor: default; }
+#btn-training-go.ready-pulse { animation: go-pulse var(--dur-count) ease-out; }
+@keyframes go-pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
 /* ---------- スロット行（汎用: 大会前ステータス表示など） ---------- */
 .stat-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: .8rem; flex-wrap: wrap; }
 .stat-row .label { min-width: 6em; flex-shrink: 0; font-weight: 800; word-break: break-word; }
 .stat-row .bar-bg { flex: 1; height: 12px; background: #eef1fa; border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; display: block; min-width: 40px; }
-.stat-row .bar { height: 100%; background: linear-gradient(90deg, var(--teal), var(--sun)); display: block; }
+.stat-row .bar { height: 100%; background: linear-gradient(90deg, var(--teal), var(--sun)); display: block; transition: width var(--dur-fill) ease-out; }
 .stat-row .val { flex-shrink: 0; text-align: right; font-weight: 800; }
 
 /* ---------- 練習結果: スロット別の成長（列を揃える） ---------- */
@@ -854,6 +971,59 @@ button.go-btn:disabled { background: var(--lock); color: #8a90a8; box-shadow: no
 .train-rows .tr-tier.fail { color: var(--coral-deep); }
 .train-rows .tr-val { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
 .train-rows .tr-target { font-weight: 800; color: var(--ink-soft); }
+.rv-cell {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: rv-row-in var(--dur-row) ease-out both;
+}
+@keyframes rv-row-in { to { opacity: 1; transform: none; } }
+.tr-stamp {
+  display: inline-block;
+  padding: 1px 7px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  line-height: 1.2;
+  opacity: 0;
+  animation: rv-stamp-in var(--dur-stamp) var(--ease-stamp) both;
+}
+/* 文字は全チップともインク（淡色地）。白抜きはteal 2.17:1/coral 2.78:1でAA未達のため使わない
+   （実測記録: design/TOKEN_SHEET.md §1） */
+.tr-stamp.tier-great { background: var(--sun); }
+.tr-stamp.tier-success { background: #d1f4ef; }
+.tr-stamp.tier-normal { background: #eef1fa; }
+.tr-stamp.tier-fail { background: #ffe1d9; border-color: var(--coral); }
+@keyframes rv-stamp-in {
+  from { opacity: 0; transform: scale(1.55) rotate(-8deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes rv-shake {
+  0%, 100% { transform: translateX(0); }
+  25%, 75% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+}
+#training-summary.rv-wait { opacity: 0; }
+#training-summary.rv-in { animation: rv-summary-in var(--dur-pop) ease-out both; }
+@keyframes rv-summary-in { from { opacity: 0; transform: translateY(8px); } }
+.rv-total {
+  display: inline-block;
+  padding: 4px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--sun);
+  color: var(--ink);
+  font-size: .92rem;
+  animation: rv-total-in var(--dur-stamp) var(--ease-stamp) both;
+}
+@keyframes rv-total-in {
+  0% { opacity: 0; transform: scale(.4); }
+  60% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+#screen-training.rv-done .rv-cell,
+#screen-training.rv-done .tr-stamp,
+#screen-training.rv-done .rv-total { animation: none !important; opacity: 1; transform: none; }
+#screen-training.rv-done #training-summary { animation: none; opacity: 1; transform: none; }
 
 /* ---------- 技術グリッド表（詳細/大会前） ---------- */
 table.skill-table { width: 100%; border-collapse: collapse; font-size: .74rem; margin: 2px 0; }
@@ -867,6 +1037,12 @@ table.skill-table tr:last-child td { border-bottom: none; }
 .radar-card { border: 2px solid var(--ink); border-radius: 12px; background: #fffdf6; padding: 3px; cursor: pointer; transition: transform .08s; }
 .radar-card:active { transform: scale(.94); }
 .radar-svg { width: 100%; height: auto; display: block; max-height: 88px; }
+.radar-svg .radar-value {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: radar-in var(--dur-radar) var(--ease-pop) both;
+}
+@keyframes radar-in { from { opacity: 0; transform: scale(.55); } }
 /* 未解禁ジャンル: チャート本体だけ彩度を落として淡くグレーアウト（前面の大きな鍵は鮮明なまま） */
 .radar-dim { filter: grayscale(1); opacity: .45; }
 
@@ -977,6 +1153,24 @@ table.results tr.me-row { color: var(--coral-deep); font-weight: 800; }
   justify-content: center;
   background: radial-gradient(circle at 50% 42%, #f5f7ff 0%, #e7ecff 52%, #d7e0ff 100%);
 }
+#event-char { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.event-portrait { display: none; }
+.event-portrait.has-img {
+  display: block; width: 64px; height: 64px;
+  border: var(--line); border-radius: 50%; overflow: hidden;
+  background: var(--paper); box-shadow: var(--pop-shadow-sm);
+}
+.event-portrait-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* イベントの顔チップ: SVGでもPNGと同じ枠で出す */
+.event-portrait.has-avatar {
+  display: block; width: 64px; height: 64px;
+  border: var(--line); border-radius: 50%; overflow: hidden;
+  background: var(--paper); box-shadow: var(--pop-shadow-sm);
+}
+.event-portrait.has-avatar svg { width: 100%; height: 100%; display: block; }
+#event-text { animation: screen-part-in 240ms ease-out .06s both; }
+#event-choices { animation: screen-part-in 240ms ease-out .14s both; }
+@keyframes screen-part-in { from { opacity: 0; transform: translateY(10px); } }
 /* 文章(白カード)とボタン群の間に明確な余白を作り、上下分割ではなく中央にまとめる */
 #event-choices { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
 
@@ -1074,6 +1268,13 @@ table.dev-grid tr.locked td { color: #545d85; }
 .pcard.rank-A .pcard-art svg { color: #ffdf8f; filter: drop-shadow(0 0 10px rgba(255, 210, 120, .55)); }
 .pcard.rank-X .pcard-art svg { color: #8a919c; filter: none; }
 .pcard-artlabel { position: absolute; bottom: 6px; left: 10px; font-size: .5rem; letter-spacing: 2px; color: #7f96b8; }
+/* 卒業カードの選手フェイス（左下のART表記と重ならないよう右下に置く） */
+.pcard-face {
+  position: absolute; right: 8px; bottom: 8px; width: 58px; height: 58px;
+  border: 3px solid #eaf2ff; border-radius: 50%; overflow: hidden;
+  background: #0e1830; box-shadow: 0 3px 10px rgba(0, 0, 0, .5);
+}
+.pcard-face svg { width: 100%; height: 100%; display: block; }
 .pcard-nums { display: flex; padding: 8px 13px 2px; gap: 10px; }
 .pcard-num { flex: 1; }
 .pcard-num.right { text-align: right; }
@@ -1340,3 +1541,34 @@ table.dev-grid tr.locked td { color: #545d85; }
 /* バックアップ画面（設定モーダル内） */
 .backup-file { display: none; }
 .backup-now { font-weight: 800; opacity: .95; }
+
+@media (prefers-reduced-motion: reduce) {
+  .title-confetti i,
+  .rv-cell,
+  .tr-stamp,
+  #training-summary.rv-in,
+  .rv-total,
+  .radar-svg .radar-value,
+  .slot.just-set,
+  #btn-training-go.ready-pulse,
+  .screen,
+  #event-text,
+  #event-choices,
+  .reveal-divname,
+  .reveal-medal,
+  .reveal-rank-num,
+  .reveal-entrants,
+  .reveal-champ,
+  .reveal-scoreline,
+  .reveal-detail,
+  .reveal-rank.rank-1::before,
+  .reveal-rank.rank-2::before,
+  .reveal-rank.rank-3::before {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  #training-summary.rv-wait { opacity: 1; transform: none; }
+  .gauge > span,
+  .stat-row .bar { transition: none; }
+}

@@ -24,7 +24,7 @@
 - スコアリマップ: `DT.DATA.SCORING.scale = { base: 30, mult: 0.7 }`。プレイヤーraw合計・相手スコア・ライバルスコアすべて同一リマップ後にjudgeMod加算・減点。相手曲線/ライバル曲線の生値は現行のまま（リマップが吸収）
 - 初期値: 経歴レンジをmethodスタッツ4つ＋ジャンル4つの計8値に適用。学力は共通のまま
 - state追加: genres{...}, lastSlots:[]（前月のスロット構成、UIプリフィル用）。SAVE_KEY v6ではなく**v5**、OLD_KEYSにv4追加
-- リポジトリルート: apps/Analyze-app/diabolo-trainer/
+- リポジトリルート: apps/game-app/diabolo-trainer/
 
 ---
 

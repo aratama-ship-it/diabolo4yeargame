@@ -86,7 +86,7 @@ function runPostEvent(state, rng) {
       state.motivation = clamp(state.motivation + DT.DATA.JJF.passMotivation, 0, 100);
       state.jjfFinalist = 1;
       state.results.push({
-        name: jq.name, type: 'jjf', division: 'qualifier', divisionLabel: 'JJF予選突破',
+        name: jq.name, type: 'jjf', division: 'qualifier', divisionLabel: 'ジャグリング全国大会予選突破',
         rank: 1, entrants: 0, points: DT.DATA.JJF.finalistPoints, turn: state.turn,
         standings: [], rivalMessages: []
       });

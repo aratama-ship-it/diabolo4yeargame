@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>絵柄案くらべ — ４８ヶ月のディアボロ</title>
+<!-- 顔パーツの大きさ・間隔・線の太さだけを変えた絵柄案を、同じ人物で並べて比べるページ。
+     開発用。ゲーム本体には含めない。 -->
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --cream:#fff8ec; --paper:#fff; --ink:#2b3a67; --ink-soft:#64719c; --coral:#ff6b6b; --sun:#ffd166; --teal:#2ec4b6; --line:3px solid var(--ink); }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN",sans-serif; font-weight:700; color:var(--ink);
+    background:linear-gradient(180deg,#7ec8f5,#b9e3ff 70%,#d8f1ff); background-attachment:fixed;
+    padding:18px; display:flex; justify-content:center;
+  }
+  .wrap { width:min(1180px,100%); display:flex; flex-direction:column; gap:12px; }
+  .panel { background:var(--cream); border:var(--line); border-radius:20px; box-shadow:0 6px 0 rgba(30,60,110,.28); padding:13px 15px; }
+  h1 { font-size:1.25rem; letter-spacing:.04em; }
+  h1 small { display:block; font-size:.66rem; font-weight:700; color:#1d4f77; letter-spacing:.09em; margin-top:2px; }
+  .lead { font-size:.74rem; font-weight:700; color:var(--ink-soft); line-height:1.7; margin-top:6px; }
+
+  .styleRow { display:grid; grid-template-columns:112px 1fr; gap:12px; align-items:center; padding:9px 0; border-bottom:2px dashed #d5dcef; }
+  .styleRow:last-child { border-bottom:none; }
+  .styleName { font-size:.92rem; font-weight:800; }
+  .styleName b { display:block; font-size:1rem; }
+  .styleName span { display:block; font-size:.56rem; font-weight:700; color:var(--ink-soft); line-height:1.5; margin-top:3px; }
+  .faces { display:flex; gap:9px; flex-wrap:wrap; }
+  .face { width:104px; height:104px; border:3px solid var(--ink); border-radius:50%; overflow:hidden; background:var(--paper); flex-shrink:0; }
+  .face.lg { width:150px; height:150px; }
+  .face.sm { width:60px; height:60px; border-width:2px; }
+  .face svg { display:block; width:100%; height:100%; }
+  .pick { border:none; background:none; padding:0; cursor:pointer; }
+  .pick.on .face { outline:4px solid var(--teal); outline-offset:3px; }
+
+  .cap { font-size:.56rem; font-weight:800; color:var(--ink-soft); text-align:center; margin-top:3px; letter-spacing:.04em; }
+  .glabel { font-size:.62rem; font-weight:800; color:var(--ink-soft); letter-spacing:.12em; margin-bottom:7px; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; }
+  button.b {
+    font-family:inherit; font-weight:800; cursor:pointer; border:var(--line); border-radius:14px;
+    background:var(--paper); color:var(--ink); padding:9px 15px; font-size:.82rem; box-shadow:0 3px 0 var(--ink);
+  }
+  button.b:active { transform:translateY(3px); box-shadow:none; }
+  button.b.primary { background:var(--coral); color:#fff; }
+  .col { display:flex; gap:14px; flex-wrap:wrap; }
+  .cell { text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <h1>絵柄案くらべ<small>FACE PROPORTION STUDY — 開発用</small></h1>
+    <p class="lead">
+      輪郭と髪の形は<b>全案で共通</b>です。変えているのは「目の大きさ・両目の間隔・口の大きさ・線の太さ・縦位置」だけ。
+      同じ4人を各案で描いているので、横に見比べると印象の差が分かります。<br>
+      案の行をクリックすると、下の「大きく見る」「表情」「小さいサイズ」がその案に切り替わります。
+    </p>
+  </div>
+
+  <div class="panel">
+    <div class="glabel">案ごとの比較（同じ4人）</div>
+    <div id="rows"></div>
+  </div>
+
+  <div class="panel">
+    <div class="glabel">選択中の案を大きく見る</div>
+    <div class="col" id="bigrow"></div>
+  </div>
+
+  <div class="panel">
+    <div class="glabel">選択中の案で表情7段階</div>
+    <div class="col" id="moodrow"></div>
+  </div>
+
+  <div class="panel">
+    <div class="glabel">実寸での見え方（ホーム44px / イベント64px / チップ18px）</div>
+    <div class="col" id="realrow" style="align-items:flex-end"></div>
+  </div>
+
+  <div class="panel">
+    <div class="glabel">ランダム16人（選択中の案・振れ幅の確認）</div>
+    <div class="faces" id="randrow"></div>
+    <div class="btns" style="margin-top:10px">
+      <button class="b primary" id="reroll">🎲 引き直す</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/avatar.js"></script>
+<script>
+(function () {
+  const A = window.DT.avatar;
+  const $ = s => document.querySelector(s);
+
+  // 比較に使う固定の4人（案の違いだけが見えるよう、顔の中身は毎回同じ）
+  const CAST = [
+    { label: '男子・黒髪', cfg: Object.assign(A.defaults(), { face:0, eyes:0, brows:0, mouth:0, hairF:2, hairB:0, hair:0, skin:0, eye:0, wear:0 }) },
+    { label: '女子・ロング', cfg: Object.assign(A.defaults(), { face:1, eyes:1, brows:2, mouth:0, hairF:0, hairB:2, hair:1, skin:1, eye:1, wear:1 }) },
+    { label: 'クール', cfg: Object.assign(A.defaults(), { face:2, eyes:2, brows:3, mouth:1, hairF:4, hairB:0, hair:7, skin:2, eye:5, wear:5 }) },
+    { label: 'メガネ', cfg: Object.assign(A.defaults(), { face:0, eyes:5, brows:1, mouth:4, hairF:1, hairB:1, hair:3, skin:0, eye:2, wear:2, acc:1 }) },
+  ];
+  const NOTES = {
+    now:    'いま見せた版',
+    calm:   '目を15%小さく<br>間隔を少し広く',
+    mii:    '目を32%小さく<br>線も細め',
+    toy:    '目は小さく<br>線は太く',
+    sporty: '細めの目<br>やや下寄り',
+  };
+  let current = 'calm';
+
+  function faceEl(cfg, opts, cls) {
+    const d = document.createElement('div');
+    d.className = 'face' + (cls ? ' ' + cls : '');
+    d.innerHTML = A.svgString(cfg, opts);
+    return d;
+  }
+
+  function buildRows() {
+    const rows = $('#rows');
+    rows.innerHTML = '';
+    A.PROPORTIONS.forEach(pr => {
+      const row = document.createElement('div');
+      row.className = 'styleRow';
+      const name = document.createElement('div');
+      name.className = 'styleName';
+      name.innerHTML = '<b>' + pr.label + '</b><span>' + (NOTES[pr.id] || '') + '</span>';
+      row.appendChild(name);
+      const faces = document.createElement('div');
+      faces.className = 'faces';
+      CAST.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'pick' + (pr.id === current ? ' on' : '');
+        btn.appendChild(faceEl(c.cfg, { proportion: pr.id }));
+        btn.onclick = () => { current = pr.id; render(); };
+        faces.appendChild(btn);
+      });
+      row.appendChild(faces);
+      rows.appendChild(row);
+    });
+  }
+
+  function buildBig() {
+    const box = $('#bigrow');
+    box.innerHTML = '';
+    CAST.forEach(c => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.appendChild(faceEl(c.cfg, { proportion: current }, 'lg'));
+      const cap = document.createElement('div');
+      cap.className = 'cap';
+      cap.textContent = c.label;
+      cell.appendChild(cap);
+      box.appendChild(cell);
+    });
+  }
+
+  function buildMoods() {
+    const labels = { best:'絶好調', good:'好調', normal:'普通', bad:'不調', worst:'絶不調', awaken:'覚醒', injured:'怪我' };
+    const box = $('#moodrow');
+    box.innerHTML = '';
+    A.MOOD_KEYS.forEach(k => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.appendChild(faceEl(CAST[0].cfg, { proportion: current, mood: k }));
+      const cap = document.createElement('div');
+      cap.className = 'cap';
+      cap.textContent = labels[k];
+      cell.appendChild(cap);
+      box.appendChild(cell);
+    });
+  }
+
+  function buildReal() {
+    const box = $('#realrow');
+    box.innerHTML = '';
+    [['イベント 64px', 64], ['ホーム 44px', 44], ['チップ 18px', 18]].forEach(([label, px]) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const d = faceEl(CAST[0].cfg, { proportion: current });
+      d.style.cssText = 'width:' + px + 'px;height:' + px + 'px;border-width:' + (px < 24 ? 2 : 3) + 'px';
+      cell.appendChild(d);
+      const cap = document.createElement('div');
+      cap.className = 'cap';
+      cap.textContent = label;
+      cell.appendChild(cap);
+      box.appendChild(cell);
+    });
+  }
+
+  function buildRandom() {
+    const box = $('#randrow');
+    box.innerHTML = '';
+    for (let i = 0; i < 16; i++) box.appendChild(faceEl(A.random(), { proportion: current }));
+  }
+
+  function render() { buildRows(); buildBig(); buildMoods(); buildReal(); buildRandom(); }
+  $('#reroll').onclick = buildRandom;
+  render();
+})();
+</script>
+</body>
+</html>

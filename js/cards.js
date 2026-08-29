@@ -42,7 +42,7 @@
     } else {
       type = Object.keys(norm).reduce((a, k) => (norm[k] > norm[a] ? k : a), 'power');
     }
-    // 大会実績（JJF予選のqualifier行は順位実績から除外）
+    // 大会実績（ジャグリング全国大会予選のqualifier行は順位実績から除外）
     const ranked = state.results.filter(r => r.division !== 'qualifier');
     const wins = ranked.filter(r => r.rank === 1).length;
     const podium = ranked.filter(r => r.rank <= 3).length;
@@ -177,7 +177,9 @@
     else if (f.worldsEntered) m.push('🌏世界大会出場');
     if (f.ajdcStreak >= 2) m.push('👑全日本連覇');
     else if (f.ajdcWin) m.push('🥇全日本V');
-    if (f.jjfFinalWin) m.push('🎪JJF王者');
+    // メダル欄は「🏆世界王者」「🥇全日本V」のように短く揃える枠なので、
+    // ジャグリング全国大会もここだけは略称にする（全名だと13文字で桁が崩れる。2026-08-29）
+    if (f.jjfFinalWin) m.push('🎪全国王者');
     if (m.length < 3 && f.wins > 0) m.push('⭐優勝' + f.wins + '回');
     if (m.length === 0) m.push(f.podium > 0 ? '🥉表彰台' + f.podium + '回' : '🎋出場' + f.entries + '大会');
     return m.slice(0, 3);

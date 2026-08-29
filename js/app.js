@@ -16,6 +16,7 @@
 
   let state = null;
   let candidate = null;
+  let candidateAvatar = null;
   let pendingLogs = [];
   let pendingMessages = [];
   let entrySelection = [];
@@ -37,8 +38,35 @@
   // --- 練習スロット選択（UI状態。null=空き、'routine'、または{genre,method}） ---
   let slotsUI = new Array(DT.DATA.SLOTS.perMonth).fill(null);
   let selectedGenre = null;
+  let justSetSlot = -1;
+  let previousSlotCount = 0;
   const METHOD_ACTION_LABEL = { difficulty: '高難度技', novelty: '新技開発', control: '反復練習' };
   const MOOD_EMOJI = { '絶好調': '🤩', '好調': '😊', '普通': '🙂', '不調': '😟', '絶不調': '😫' };
+  // ---- キャラ画像スロット（2026-08-28）----
+  // 「置いてあれば出す、無ければ現状の絵文字・テキストのまま」を1か所で扱う。
+  // 同じsrcは1セッションに1回しか読みに行かない（未配置でも404は1件で打ち止め）。
+  // 素材ごと止めたいときは false にする（画像を一切取りに行かなくなる）。
+  const CHAR_IMAGES_ENABLED = true;
+  const charImgState = new Map(); // src -> 'ok' | 'ng' | 'loading'
+  const HERO_MOOD_KEY = { '絶好調': 'best', '好調': 'good', '普通': 'normal', '不調': 'bad', '絶不調': 'worst' };
+  const heroMoodSrc = key => 'assets/chars/hero/mood-' + key + '.png';
+  const charPortraitSrc = id => 'assets/chars/portrait/' + id + '.png';
+  // NPCの顔。役柄から手で決めたプリセット（2026-08-28）。
+  // 後からイラストに戻したくなったら assets/chars/portrait/<id>.png を置く（PNGが優先される）。
+  const NPC_AVATAR = {
+    // 目の番号は 0まる 1ほそ 2きらきら 3ジト 4てんてん 5にっこり 6まつげ 7するどい 8みひらき 9ほしめ
+    // 輪郭は 0たまご 1まる 2えら 3とがり 4ふっくら
+    coach:  { face:2, eyes:7, brows:1, mouth:1, hairF:4, hairB:0, acc:0, skin:2, hair:0, eye:0, wear:5 }, // 指導者・貫禄
+    yota:   { face:1, eyes:0, brows:0, mouth:4, hairF:2, hairB:0, acc:0, skin:1, hair:1, eye:1, wear:0 }, // ムードメーカー
+    mikoto: { face:0, eyes:6, brows:0, mouth:1, hairF:0, hairB:2, acc:1, skin:0, hair:0, eye:5, wear:2 }, // 理論派・メガネ
+    shion:  { face:3, eyes:1, brows:3, mouth:1, hairF:3, hairB:1, acc:0, skin:0, hair:7, eye:2, wear:1 }, // 天才ライバル
+    kaito:  { face:2, eyes:8, brows:1, mouth:2, hairF:4, hairB:0, acc:0, skin:3, hair:0, eye:0, wear:5 }, // 王者・威圧
+    irie:   { face:4, eyes:5, brows:2, mouth:0, hairF:5, hairB:0, acc:0, skin:1, hair:2, eye:1, wear:4 }, // 人懐こい同期
+    ujiji:  { face:3, eyes:3, brows:3, mouth:1, hairF:6, hairB:3, acc:0, skin:2, hair:0, eye:0, wear:3 }, // 大陸からの刺客
+    kazuki: { face:4, eyes:4, brows:1, mouth:1, hairF:7, hairB:0, acc:1, skin:2, hair:5, eye:4, wear:5 }, // 博士
+    george: { face:1, eyes:9, brows:0, mouth:3, hairF:6, hairB:1, acc:2, skin:3, hair:3, eye:3, wear:0 }, // 大道芸人
+    saito:  { face:2, eyes:1, brows:0, mouth:1, hairF:4, hairB:0, acc:1, skin:2, hair:5, eye:0, wear:5 }, // 協会の会長
+  };
   const CONTEST_DESC = { oidc: '大阪国際ディアボロコンテスト', ajdc: '全日本選手権（頂点）', worlds: '世界の頂点', shizuoka: '静岡ディアボロコンテスト' };
   // 現在ターン以降で最も近い大会（CONTESTSは順不同のため最小turnを取る）
   function nextContestFrom(turn) {
@@ -77,12 +105,85 @@
     return n;
   }
 
+  function mountCharImage(container, src, imgClass) {
+    if (!CHAR_IMAGES_ENABLED || !container || !src) return;
+    const image = () => {
+      const img = new Image();
+      img.src = src;
+      img.alt = '';
+      img.className = imgClass;
+      img.draggable = false;
+      return img;
+    };
+    const status = charImgState.get(src);
+    if (status === 'ok') {
+      container.replaceChildren(image());
+      container.classList.add('has-img');
+      return;
+    }
+    if (status === 'ng' || status === 'loading') return;
+    charImgState.set(src, 'loading');
+    const preload = new Image();
+    preload.onload = () => {
+      charImgState.set(src, 'ok');
+      if (!container.isConnected) return;
+      container.replaceChildren(image());
+      container.classList.add('has-img');
+    };
+    preload.onerror = () => { charImgState.set(src, 'ng'); };
+    preload.src = src;
+  }
+
+  // 保存データに顔が無い選手（アバター導入前のセーブ）は、名前から決まった顔を出す。
+  // fromSeedは同じ名前なら必ず同じ顔になるので、周回をまたいでも見た目が変わらない。
+  function avatarOf(who) {
+    if (!DT.avatar) return null;
+    if (!who) return DT.avatar.defaults();
+    return who.avatar ? DT.avatar.normalize(who.avatar) : DT.avatar.fromSeed(who.name || '');
+  }
+
+  // 器にSVGの顔を差し込む。中身は総入れ替えし、has-avatar を付ける。
+  function mountAvatar(container, cfg, moodKey) {
+    if (!container || !DT.avatar || !cfg) return;
+    container.replaceChildren(DT.avatar.svgElement(cfg, moodKey ? { mood: moodKey } : {}));
+    container.classList.add('has-avatar');
+  }
+
+  function heroMoodKey(state, moodLabel) {
+    if (state.injuredTurns > 0) return 'injured';
+    if (state.awakenTurns > 0) return 'awaken';
+    return HERO_MOOD_KEY[moodLabel] || 'normal';
+  }
+
+  // イベントのcharには演出用の擬似ID（覚醒のきざしの'awaken'）が混ざる。
+  // CHARACTERSに実在するIDのときだけ絵を探しにいく（無い絵への404を出さない）。
+  function charHasPortrait(charId) {
+    return !!charId && DT.DATA.CHARACTERS.some(c => c.id === charId);
+  }
+
+  function setEventSpeaker(name, charId, avatarCfg) {
+    const portrait = el('span', 'event-portrait');
+    const speakerName = el('span', 'event-speaker-name', name);
+    $('#event-char').replaceChildren(portrait, speakerName);
+    const cfg = avatarCfg || (charId ? NPC_AVATAR[charId] : null);
+    if (cfg) mountAvatar(portrait, avatarOf({ name: name, avatar: cfg }));
+    if (charHasPortrait(charId)) mountCharImage(portrait, charPortraitSrc(charId), 'event-portrait-img');
+  }
+
+  // 改称前のセーブ対策（2026-08-29）: 大会名を「JJF」→「ジャグリング全国大会」に変えたが、
+  // 進行中のセーブの state.results には旧ラベルが残っている。保存データは書き換えず、
+  // 表示するときだけ読み替える（同じ周回で新旧の呼び名が混ざるのを防ぐ）。
+  function contestLabel(text) {
+    return String(text === undefined || text === null ? '' : text).replace(/JJF/g, 'ジャグリング全国大会');
+  }
+
   function statBar(label, value) {
     const row = el('div', 'stat-row');
     row.appendChild(el('span', 'label', label));
     const bg = el('span', 'bar-bg');
     const bar = el('span', 'bar');
-    bar.style.width = value + '%';
+    bar.style.width = '0%';
+    requestAnimationFrame(() => { bar.style.width = value + '%'; });
     bg.appendChild(bar);
     row.appendChild(bg);
     row.appendChild(el('span', 'val', String(value)));
@@ -102,7 +203,9 @@
     row.appendChild(el('span', 'm-label', label));
     const gauge = el('div', 'gauge' + (opts.warn ? ' warn' : ''));
     const fill = el('span');
-    fill.style.width = Math.max(0, Math.min(100, value)) + '%';
+    const targetWidth = Math.max(0, Math.min(100, value)) + '%';
+    fill.style.width = '0%';
+    requestAnimationFrame(() => { fill.style.width = targetWidth; });
     gauge.appendChild(fill);
     row.appendChild(gauge);
     const val = el('span', 'm-val num', opts.valText !== undefined ? opts.valText : String(value));
@@ -150,7 +253,7 @@
     if (unlocked) {
       const vpts = [rp(cell.difficulty, 0), rp(cell.novelty, 1), rp(cell.control, 2)];
       // 塗りは中立色（特定軸に偏らせない）。頂点ドットを軸カラーで色分けして識別性を上げる
-      bg.appendChild(svgEl('polygon', { points: ptStr(vpts), fill: 'rgba(43,58,103,0.10)', stroke: '#9aa4c8', 'stroke-width': '1.3' }));
+      bg.appendChild(svgEl('polygon', { points: ptStr(vpts), fill: 'rgba(43,58,103,0.10)', stroke: '#9aa4c8', 'stroke-width': '1.3', class: 'radar-value' }));
       vpts.forEach((p, a) => {
         bg.appendChild(svgEl('circle', {
           cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: '2.1',
@@ -288,6 +391,10 @@
   function newCandidate() {
     const next = DT.state.newCharacter(undefined, selectedBackground, GAME_MODE);
     if (SHORT) next.activeAlumni = DT.state.loadActiveAlumni(undefined, GAME_MODE);
+    if (DT.avatar) {
+      if (!candidateAvatar) candidateAvatar = DT.avatar.random();
+      next.avatar = candidateAvatar;
+    }
     return next;
   }
 
@@ -324,6 +431,7 @@
       statBar('演技構成', c.composition),
       statBar('学力', c.study)
     );
+    mountAvatar($('#create-avatar'), avatarOf(c));
     show('#screen-create');
   }
 
@@ -339,6 +447,7 @@
   $('#btn-reroll').onclick = () => renderCreate(newCandidate());
   $('#btn-create-back').onclick = () => {
     candidate = null;
+    candidateAvatar = null;
     registrationNameDraft = null;
     registrationRenameUsed = false;
     initTitle();
@@ -347,6 +456,71 @@
   function normalizedPlayerName(value) {
     return (String(value || '').trim() || '主人公').slice(0, 8);
   }
+
+  function openAvatarEditor() {
+    if (!DT.avatar) return;
+    if (!candidateAvatar) candidateAvatar = DT.avatar.random();
+    renderAvatarEditor();
+    $('#avatar-modal').classList.remove('hidden');
+  }
+
+  function closeAvatarEditor() {
+    $('#avatar-modal').classList.add('hidden');
+    if (candidate) mountAvatar($('#create-avatar'), avatarOf(candidate));
+  }
+
+  function renderAvatarEditor() {
+    if (!DT.avatar || !candidateAvatar) return;
+    mountAvatar($('#avatar-preview'), candidateAvatar);
+    const rows = [];
+    DT.avatar.SLOTS.forEach(slot => {
+      const row = el('div', 'apart');
+      row.appendChild(el('div', 'apart-label', slot.label));
+      const options = el('div', 'apart-opts');
+      slot.list.forEach((part, i) => {
+        const button = el('button', 'apart-opt' + (candidateAvatar[slot.key] === i ? ' on' : ''));
+        const preview = Object.assign({}, candidateAvatar);
+        preview[slot.key] = i;
+        button.appendChild(DT.avatar.svgElement(preview));
+        button.setAttribute('aria-label', slot.label + ' ' + part.label);
+        button.onclick = () => {
+          candidateAvatar[slot.key] = i;
+          renderAvatarEditor();
+        };
+        options.appendChild(button);
+      });
+      row.appendChild(options);
+      rows.push(row);
+    });
+    DT.avatar.COLOR_SLOTS.forEach(slot => {
+      const row = el('div', 'apart');
+      row.appendChild(el('div', 'apart-label', slot.label));
+      // 色見本は顔サムネイルより小さく詰められるので、折り返しの列幅を別に持つ
+      const options = el('div', 'apart-opts is-colors');
+      slot.list.forEach((color, i) => {
+        const button = el('button', 'apart-sw' + (candidateAvatar[slot.key] === i ? ' on' : ''));
+        button.style.background = color;
+        button.setAttribute('aria-label', slot.label + ' ' + (i + 1));
+        button.onclick = () => {
+          candidateAvatar[slot.key] = i;
+          renderAvatarEditor();
+        };
+        options.appendChild(button);
+      });
+      row.appendChild(options);
+      rows.push(row);
+    });
+    $('#avatar-parts').replaceChildren(...rows);
+  }
+
+  $('#btn-avatar-open').onclick = openAvatarEditor;
+  $('#btn-avatar-random').onclick = () => {
+    if (!DT.avatar || !candidateAvatar) return;
+    Object.assign(candidateAvatar, DT.avatar.random());
+    renderAvatarEditor();
+  };
+  $('#btn-avatar-done').onclick = closeAvatarEditor;
+  document.querySelectorAll('[data-close-avatar]').forEach(b => { b.onclick = closeAvatarEditor; });
 
   function syncRegistrationName() {
     const name = registrationNameDraft || '主人公';
@@ -367,6 +541,7 @@
     if (!candidate) return;
     if (!registrationNameDraft) registrationNameDraft = normalizedPlayerName($('#create-name').value);
     syncRegistrationName();
+    mountAvatar($('#registration-avatar'), avatarOf(candidate));
     $('#registration-name-edit').classList.add('hidden');
     $('#registration-modal').classList.remove('hidden');
   }
@@ -472,8 +647,8 @@
       const w = DT.contest.worldsContestForTurn(t);
       if (w) out.push({ turn: t, icon: '🌍', name: w.name, sub: '前年に優勝で出場権', cls: 'worlds', isNext: false });
       if (DT.DATA.EXAMS.turns.includes(t)) out.push({ turn: t, icon: '📝', name: '定期テスト', sub: '学力' + DT.DATA.EXAMS.passLine + '未満で補習2ヶ月', cls: 'exam', isNext: false });
-      if (DT.DATA.JJF.qualifierTurns.includes(t)) out.push({ turn: t, icon: '🤹', name: 'JJF予選', sub: '参加は任意・バランス総合力で突破', cls: 'jjf', isNext: false });
-      if (DT.DATA.JJF.finalTurns.includes(t)) out.push({ turn: t, icon: '🏅', name: 'JJF決勝', sub: '予選突破者のみ・10人で争う', cls: 'jjf', isNext: false });
+      if (DT.DATA.JJF.qualifierTurns.includes(t)) out.push({ turn: t, icon: '🤹', name: 'ジャグリング全国大会予選', sub: '参加は任意・バランス総合力で突破', cls: 'jjf', isNext: false });
+      if (DT.DATA.JJF.finalTurns.includes(t)) out.push({ turn: t, icon: '🏅', name: 'ジャグリング全国大会決勝', sub: '予選突破者のみ・10人で争う', cls: 'jjf', isNext: false });
       if (DT.engine.isMeetupMonth(t)) out.push({ turn: t, icon: '🤝', name: '練習会', sub: 'ルーチン構成・新技が伸びやすい', cls: 'meetup', isNext: false });
     }
     return out;
@@ -508,8 +683,8 @@
         const row = el('div', 'event-row');
         row.appendChild(el('span', 'event-icon', r.type === 'worlds' ? '🌍' : '🏆'));
         const meta = el('div', 'event-meta');
-        meta.appendChild(el('div', 'event-when', DT.engine.turnLabel(r.turn) + '・' + r.name));
-        meta.appendChild(el('div', 'event-name', r.divisionLabel + '　' + r.rank + '位'));
+        meta.appendChild(el('div', 'event-when', DT.engine.turnLabel(r.turn) + '・' + contestLabel(r.name)));
+        meta.appendChild(el('div', 'event-name', contestLabel(r.divisionLabel) + '　' + r.rank + '位'));
         row.appendChild(meta);
         row.appendChild(el('span', 'event-badge', '+' + r.points + 'pt'));
         rows.push(row);
@@ -624,6 +799,9 @@
       row.type = 'button';
       row.setAttribute('aria-pressed', selected ? 'true' : 'false');
       row.appendChild(el('span', 'alumni-pick', selected ? String(pickedAt + 1) : '＋'));
+      const face = el('span', 'alumni-face');
+      mountAvatar(face, avatarOf(entry));
+      row.appendChild(face);
       const meta = el('span', 'alumni-roster-meta');
       const name = el('span', 'alumni-roster-name', entry.name);
       name.appendChild(el('span', 'alumni-origin ' + entry.source,
@@ -811,7 +989,11 @@
     const moodLabel = DT.engine.motivationLabel(state.motivation);
     const cond = el('div', 'pb-cond');
     const mood = el('div', 'pb-mood');
-    mood.appendChild(el('div', 'mood-face', MOOD_EMOJI[moodLabel] || '🙂'));
+    const faceEl = el('div', 'mood-face', MOOD_EMOJI[moodLabel] || '🙂');
+    const moodKey = heroMoodKey(state, moodLabel);
+    mountAvatar(faceEl, avatarOf(state), moodKey);
+    mountCharImage(faceEl, heroMoodSrc(moodKey), 'mood-face-img');
+    mood.appendChild(faceEl);
     mood.appendChild(el('div', 'mood-label', moodLabel));
     mood.appendChild(el('div', 'mood-note', 'やる気 ' + state.motivation));
     // 覚醒中バッジ（やる気の直下に「覚醒」漢字＋残り月数）
@@ -925,6 +1107,7 @@
     if (idx < 0) return;
     if (countSameEntry(entry) >= 2) return; // 同じ練習メニューは2つまで
     slotsUI[idx] = entry;
+    justSetSlot = idx;
     renderTrainMenu();
   }
 
@@ -945,12 +1128,18 @@
     }
     d.appendChild(el('span', 's-x', '×'));
     d.onclick = () => { slotsUI[idx] = null; renderTrainMenu(); };
+    if (idx === justSetSlot) d.classList.add('just-set');
     return d;
   }
 
   function renderTrainMenu() {
     const mood = DT.engine.motivationLabel(state.motivation);
-    $('#trainmenu-mood').textContent = (MOOD_EMOJI[mood] || '🙂') + ' ' + mood + (SHORT ? '・伸び×2' : '');
+    const moodMini = el('span', 'mood-mini', MOOD_EMOJI[mood] || '🙂');
+    const moodText = el('span', '', ' ' + mood + (SHORT ? '・伸び×2' : ''));
+    $('#trainmenu-mood').replaceChildren(moodMini, moodText);
+    const moodKey = heroMoodKey(state, mood);
+    mountAvatar(moodMini, avatarOf(state), moodKey);
+    mountCharImage(moodMini, heroMoodSrc(moodKey), 'mood-mini-img');
 
     // 画面上部に現在の能力値を表示（何を伸ばすか判断しやすく）
     $('#trainmenu-skills').replaceChildren(
@@ -960,6 +1149,7 @@
     );
 
     $('#slot-row').replaceChildren(...slotsUI.map(slotButton));
+    justSetSlot = -1;
 
     const injured = state.injuredTurns > 0; // 怪我中はルーチン構成のみ（ジャンル練習不可）
     const empty = firstEmptySlot();
@@ -1013,7 +1203,22 @@
       $('#method-row').replaceChildren(...methodBtns, routineBtn);
     }
 
-    $('#btn-training-go').disabled = slotsUI.some(s => s === null);
+    const goButton = $('#btn-training-go');
+    const slotCount = slotsUI.filter(Boolean).length;
+    if (slotCount === 3 && previousSlotCount < 3) {
+      goButton.classList.remove('ready-pulse');
+      void goButton.offsetWidth;
+      goButton.classList.add('ready-pulse');
+      goButton.onanimationend = () => {
+        goButton.classList.remove('ready-pulse');
+        goButton.onanimationend = null;
+      };
+    } else if (slotCount !== 3) {
+      goButton.classList.remove('ready-pulse');
+      goButton.onanimationend = null;
+    }
+    previousSlotCount = slotCount;
+    goButton.disabled = slotsUI.some(s => s === null);
     updateDevPanel();
     show('#screen-trainmenu');
   }
@@ -1030,15 +1235,61 @@
   }
 
   function renderTrainingResult(tr) {
+    const screen = $('#screen-training');
+    const summary = $('#training-summary');
+    const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const timers = new Set();
+    const frames = new Set();
+    const valueCells = [];
+    let finalized = false;
+    let totalShown = false;
+
+    screen.classList.remove('rv-done');
+
+    function schedule(fn, delay) {
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        fn();
+      }, delay);
+      timers.add(timer);
+      return timer;
+    }
+
+    function requestResultFrame(fn) {
+      const frame = requestAnimationFrame(now => {
+        frames.delete(frame);
+        fn(now);
+      });
+      frames.add(frame);
+      return frame;
+    }
+
     // 上部＝スロットごとの結果。列がぴったり揃うよう1つのグリッドに
     // [メニュー][判定][増分][対象] の順で流し込む
     const grid = el('div', 'train-rows');
-    tr.results.forEach(r => {
+    const tierClasses = { '大成功': 'tier-great', '成功': 'tier-success', '普通': 'tier-normal', '失敗': 'tier-fail' };
+    tr.results.forEach((r, i) => {
       const fail = r.tier === '失敗';
-      grid.appendChild(el('span', 'tr-menu', slotChipLabel(r.slot)));
-      grid.appendChild(el('span', 'tr-tier' + (fail ? ' fail' : ''), r.tier));
-      grid.appendChild(el('span', 'tr-val', fail ? '—' : '+' + r.gain));
-      grid.appendChild(el('span', 'tr-target', trainTargetLabel(r)));
+      const rowDelay = i * 140;
+      const stampDelay = rowDelay + 180;
+      const menuCell = el('span', 'tr-menu rv-cell', slotChipLabel(r.slot));
+      const tierCell = el('span', 'tr-tier rv-cell' + (fail ? ' fail' : ''));
+      const stamp = el('span', 'tr-stamp ' + (tierClasses[r.tier] || 'tier-normal'), r.tier);
+      const valueCell = el('span', 'tr-val rv-cell', fail ? '—' : '0');
+      const targetCell = el('span', 'tr-target rv-cell', trainTargetLabel(r));
+      [menuCell, tierCell, valueCell, targetCell].forEach(cell => { cell.style.animationDelay = rowDelay + 'ms'; });
+      if (fail) {
+        stamp.style.animation = 'rv-stamp-in var(--dur-stamp) var(--ease-stamp) ' + stampDelay + 'ms both, '
+          + 'rv-shake 300ms ease-out ' + (stampDelay + 340) + 'ms 1 both';
+      } else {
+        stamp.style.animationDelay = stampDelay + 'ms';
+        valueCells.push({ node: valueCell, value: r.gain, delay: rowDelay + 260 });
+      }
+      tierCell.appendChild(stamp);
+      grid.appendChild(menuCell);
+      grid.appendChild(tierCell);
+      grid.appendChild(valueCell);
+      grid.appendChild(targetCell);
     });
     const slotNodes = [];
     if (tr.outdoor) slotNodes.push(el('div', 'cond-warn', '⚠ 体育館工事のため屋外練習… 伸びが半減しました'));
@@ -1063,7 +1314,54 @@
     });
     if (compositionTotal !== 0) summaryNodes.push(textRow('演技構成', '+' + compositionTotal));
     if (summaryNodes.length === 0) summaryNodes.push(el('div', 'cond-warn', '今月は実りが少なかった……'));
-    $('#training-summary').replaceChildren(...summaryNodes);
+    summary.replaceChildren(...summaryNodes);
+    summary.classList.remove('rv-in');
+    summary.classList.add('rv-wait');
+
+    const totalGrowth = Object.keys(cellTotals).reduce((sum, key) => sum + cellTotals[key], 0) + compositionTotal;
+    function revealSummary() {
+      summary.classList.remove('rv-wait');
+      if (!summary.classList.contains('rv-in')) summary.classList.add('rv-in');
+    }
+    function revealTotal() {
+      if (totalShown || totalGrowth === 0) return;
+      totalShown = true;
+      summary.appendChild(el('div', 'rv-total num', '📈 今月の伸び 合計 +' + totalGrowth));
+    }
+    function finalize() {
+      if (finalized) return;
+      finalized = true;
+      timers.forEach(timer => clearTimeout(timer));
+      timers.clear();
+      frames.forEach(frame => cancelAnimationFrame(frame));
+      frames.clear();
+      valueCells.forEach(item => { item.node.textContent = '+' + item.value; });
+      revealSummary();
+      revealTotal();
+      screen.classList.add('rv-done');
+    }
+
+    screen.onclick = finalize;
+
+    if (reduceMotion) {
+      finalize();
+    } else {
+      valueCells.forEach(item => {
+        schedule(() => {
+          const startedAt = performance.now();
+          const tick = now => {
+            const progress = Math.min(1, (now - startedAt) / 500);
+            item.node.textContent = '+' + Math.round(item.value * progress);
+            if (progress < 1) requestResultFrame(tick);
+          };
+          requestResultFrame(tick);
+        }, item.delay);
+      });
+      schedule(() => {
+        revealSummary();
+        if (totalGrowth !== 0) schedule(revealTotal, 260);
+      }, tr.results.length * 140 + 900);
+    }
 
     // その月の練習で変化したパラメーターの数値を記録ログにも残す
     const changeMsgs = [];
@@ -1076,6 +1374,7 @@
 
     // 練習の結果として、怪我判定→SNS投稿の順で処理（怪我は練習の直接結果なのでSNSより先）。その後に練習後スロットへ。
     $('#btn-training-ok').onclick = () => {
+      finalize();
       pendingMessages.push('練習を終えた。');
       changeMsgs.forEach(m => pendingMessages.push(m));
       const inj = DT.engine.rollInjury(state);
@@ -1099,7 +1398,7 @@
   // 新技開発の大成功で発生: SNSに動画を投稿するか？（投稿=高確率でバズ・低確率で既存技判明）
   function snsClampMot(delta) { state.motivation = Math.max(0, Math.min(100, state.motivation + delta)); }
   function showSnsEvent(onDone) {
-    $('#event-char').textContent = '📱 SNS';
+    setEventSpeaker('📱 SNS');
     $('#event-text').replaceChildren(el('p', '', '新しい技が大成功！ この技の動画をSNSに投稿する？'));
     const up = el('button', 'primary', '投稿する');
     up.onclick = () => {
@@ -1205,7 +1504,7 @@
 
   // 初詣おみくじ（毎年1月の頭・全モード共通）。「引く」で抽選→結果ページ（大吉〜大凶で能力・やる気が上下）→行動へ
   function renderOmikuji() {
-    $('#event-char').textContent = '⛩ 初詣';
+    setEventSpeaker('⛩ 初詣');
     $('#event-text').replaceChildren(el('p', '', '新年あけましておめでとう！ 部のみんなと初詣に来た。今年の運勢を占ってみよう。'));
     const b = el('button', 'primary', 'おみくじを引く');
     b.onclick = () => {
@@ -1245,8 +1544,8 @@
   }
 
   // 選択肢のないイベント/ハプニング/状態イベントを1ページ挟んで表示（OKで続行）。効果の増減も一緒に見せる。
-  function showEventNotice(header, text, effectLines, onContinue) {
-    $('#event-char').textContent = header;
+  function showEventNotice(header, text, effectLines, onContinue, charId) {
+    setEventSpeaker(header, charId);
     const nodes = [el('p', '', text)];
     (effectLines || []).forEach(m => nodes.push(el('div', 'notice-effect', m)));
     $('#event-text').replaceChildren(...nodes);
@@ -1260,7 +1559,7 @@
     startTurn(actionId, null);
   }
 
-  // ③ 練習後スロット: 大会（通常大会/世界大会/JJF）→ 固定イベント の順で1件処理し、無ければターン終了。
+  // ③ 練習後スロット: 大会（通常大会/世界大会/ジャグリング全国大会）→ 固定イベント の順で1件処理し、無ければターン終了。
   //   ランダム・状態イベントは練習前スロット(runPreSlot)で処理済みなのでここでは扱わない。
   function runPostSlot() {
     const contest = DT.contest.contestForTurn(state.turn);
@@ -1275,14 +1574,14 @@
       renderWorldsEntry(wc);
       return;
     }
-    // JJF予選（9月）: 参加するか選ぶ
+    // ジャグリング全国大会予選（9月）: 参加するか選ぶ
     const jq = DT.contest.jjfQualifierForTurn(state.turn);
     if (jq) {
       pendingContest = jq;
       renderJjfQualifier(jq);
       return;
     }
-    // JJF決勝（10月）: 予選突破していれば自動で決勝→結果画面
+    // ジャグリング全国大会決勝（10月）: 予選突破していれば自動で決勝→結果画面
     const jf = DT.contest.jjfFinalForTurn(state.turn);
     if (jf && state.jjfFinalist) {
       state.jjfFinalist = 0;
@@ -1314,7 +1613,7 @@
   function renderEvent(event, onDone) {
     // speaker指定があれば優先（CHARACTERSに居ない一度きりのゲストNPC用。例: 斉藤会長）
     const chara = DT.DATA.CHARACTERS.find(c => c.id === event.char);
-    $('#event-char').textContent = event.speaker || (chara ? chara.name : '');
+    setEventSpeaker(event.speaker || (chara ? chara.name : ''), event.char);
     $('#event-text').replaceChildren(el('p', '', event.text));
     const buttons = event.choices.map((c, i) => {
       const b = el('button', i === 0 ? 'primary' : '', c.label);
@@ -1335,7 +1634,7 @@
         }
         // 選択の結果（結果文＋効果）を専用ページで表示してから続行（ログだけにしない）
         const header = event.speaker || (chara ? chara.name : '結果');
-        showEventNotice(header, messages[0], messages.slice(1), () => { pushMsgs(messages); onDone(); });
+        showEventNotice(header, messages[0], messages.slice(1), () => { pushMsgs(messages); onDone(); }, event.char);
       };
       return b;
     });
@@ -1344,7 +1643,7 @@
   }
 
   function renderAlumniEvent(event, onDone) {
-    $('#event-char').textContent = event.speaker;
+    setEventSpeaker(event.speaker, null, avatarOf(event.alumni));
     const technique = DT.events.techniqueLabel(event.alumni.techniqueId);
     const rank = event.rankBonus || DT.events.alumniRankBonus(event.alumni);
     $('#event-text').replaceChildren(
@@ -1438,7 +1737,7 @@
         effectLines.push(genreLabel(r.division) + '×操作安定度 +3');
       }
     });
-    const divs = qualifying.map(r => r.divisionLabel).join('・');
+    const divs = qualifying.map(r => contestLabel(r.divisionLabel)).join('・');
     const text = '大会後、「その技どうやるんですか！？」と質問攻めに！ 新奇性が評価され、一躍人気者になった。（' + divs + '）';
     return { text: text, effectLines: effectLines, count: n };
   }
@@ -1453,7 +1752,7 @@
       contestResults.forEach(r => {
         const pts = r.points ? '・+' + r.points + 'pt' : '';
         const nums = (r.entrants ? '位/' + r.entrants + '人' : '位') + '（' + r.score + '点' + pts + '）';
-        histMsgs.push('🏆 ' + r.name + '　' + r.divisionLabel + '　' + r.rank + nums);
+        histMsgs.push('🏆 ' + contestLabel(r.name) + '　' + contestLabel(r.divisionLabel) + '　' + r.rank + nums);
       });
       // 人気者イベント（確定発火）。ショート版は同月2件目にせず、効果とログだけ大会結果へ統合する。
       pendingPopularity = evaluatePopularity(state, contestResults);
@@ -1698,7 +1997,7 @@
   function renderRetireOffer(logs, onContinue) {
     const e = DT.ending.evaluate(state);
     const top = DT.cards.pickCandidates(Object.assign({}, state, { status: 'retired' }))[0];
-    $('#event-char').textContent = '🌸 3年生の春';
+    setEventSpeaker('🌸 3年生の春');
     const info = el('div', 'retire-info');
     info.appendChild(el('div', 'retire-info-head', '📈 いま区切りをつけた場合の評価'));
     info.appendChild(el('div', '', 'キャリアランク ' + e.rank + '／タイプ ' + top.typeLabel));
@@ -1721,7 +2020,7 @@
   }
 
   function renderRetireConfirm(logs, onContinue) {
-    $('#event-char').textContent = '🌅 本当に区切りをつける？';
+    setEventSpeaker('🌅 本当に区切りをつける？');
     $('#event-text').replaceChildren(
       el('p', '', '引退すると3〜4年生はプレイせず、いまの実績でエンディングになる。この決断は取り消せない。')
     );
@@ -1821,11 +2120,11 @@
     show('#screen-entry');
   }
 
-  // --- JJF予選（9月）: 参加/不参加を選ぶ ---
+  // --- ジャグリング全国大会予選（9月）: 参加/不参加を選ぶ ---
   function renderJjfQualifier(jq) {
     renderEntryStatus();
     $('#entry-title').textContent = jq.name + '（9月）';
-    $('#entry-hint').textContent = 'JJFに挑戦しますか？ 全パラメータがバランス良く高いほど予選を突破できます。';
+    $('#entry-hint').textContent = 'ジャグリング全国大会に挑戦しますか？ 全パラメータがバランス良く高いほど予選を突破できます。';
     const join = el('button', 'primary', '参加する');
     join.onclick = () => {
       const q = DT.contest.jjfQualify(state);
@@ -1834,14 +2133,14 @@
         state.motivation = Math.max(0, Math.min(100, state.motivation + DT.DATA.JJF.passMotivation));
         state.jjfFinalist = 1;
         // 決勝進出ポイント(+10)を記録（決勝の追加ポイントは決勝側で付与）
-        state.results.push({ name: jq.name, type: 'jjf', division: 'qualifier', divisionLabel: 'JJF予選突破', rank: 1, entrants: 0, points: DT.DATA.JJF.finalistPoints, turn: state.turn, standings: [], rivalMessages: [] });
-        msgs.push('JJF予選突破！ 決勝進出（+' + DT.DATA.JJF.finalistPoints + 'pt・やる気アップ）');
+        state.results.push({ name: jq.name, type: 'jjf', division: 'qualifier', divisionLabel: 'ジャグリング全国大会予選突破', rank: 1, entrants: 0, points: DT.DATA.JJF.finalistPoints, turn: state.turn, standings: [], rivalMessages: [] });
+        msgs.push('ジャグリング全国大会予選突破！ 決勝進出（+' + DT.DATA.JJF.finalistPoints + 'pt・やる気アップ）');
         showJjfResult(q, () => finishTurn(pendingMessages.concat(msgs), null));
       } else {
         // 敗退: 専用ページは出すが理由は書かず簡潔に。やる気だけ下げる
         state.motivation = Math.max(0, state.motivation - 8);
-        msgs.push('JJF予選敗退… やる気が下がった。');
-        showEventNotice('💧 JJF予選 敗退', '予選敗退……', ['やる気 -8'], () => finishTurn(pendingMessages.concat(msgs), null));
+        msgs.push('ジャグリング全国大会予選敗退… やる気が下がった。');
+        showEventNotice('💧 ジャグリング全国大会予選 敗退', '予選敗退……', ['やる気 -8'], () => finishTurn(pendingMessages.concat(msgs), null));
       }
     };
     const skip = el('button', '', '参加しない');
@@ -1851,9 +2150,9 @@
     show('#screen-entry');
   }
 
-  // JJF予選の結果をポップアップ表示（sched-popupを流用）
+  // ジャグリング全国大会予選の結果をポップアップ表示（sched-popupを流用）
   function showJjfResult(q, onDone) {
-    $('#sched-title').textContent = q.passed ? '🎉 JJF予選 突破！' : '💧 JJF予選 敗退';
+    $('#sched-title').textContent = q.passed ? '🎉 ジャグリング全国大会予選 突破！' : '💧 ジャグリング全国大会予選 敗退';
     const nodes = [el('p', 'popup-text', q.passed ? '予選突破！ 来月の決勝に進出します。' : '予選敗退。総合バランスをさらに高めよう。')];
     // 突破時のみバランス評価を表示（敗退時は理由を出さない）
     if (q.passed) {
@@ -1937,7 +2236,7 @@
     return table;
   }
 
-  // 部門の発表順（迫力の部門別リザルト）。指定外(JJF決勝/世界大会等)は末尾に単独表示
+  // 部門の発表順（迫力の部門別リザルト）。指定外(ジャグリング全国大会決勝/世界大会等)は末尾に単独表示
   const REVEAL_ORDER = ['h1d', 'v1d', 'd2', 'd3', 'overall', 'technical', 'performance'];
   const RANK_MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
   let contestReveal = null;
@@ -1959,7 +2258,7 @@
     const stage = el('div', 'reveal-stage');
 
     if (total > 1) stage.appendChild(el('div', 'reveal-progress', '発表 ' + (contestReveal.i + 1) + ' / ' + total + ' 部門'));
-    stage.appendChild(el('div', 'reveal-divname', r.divisionLabel));
+    stage.appendChild(el('div', 'reveal-divname', contestLabel(r.divisionLabel)));
 
     // 順位（主役）
     const rankBox = el('div', 'reveal-rank rank-' + (r.rank <= 3 ? r.rank : 'x'));
@@ -2049,7 +2348,7 @@
         table.appendChild(group);
       }
       const tr = el('tr');
-      tr.appendChild(el('td', '', r.divisionLabel));
+      tr.appendChild(el('td', '', contestLabel(r.divisionLabel)));
       tr.appendChild(el('td', '', r.rank + '位'));
       tr.appendChild(el('td', '', r.points + 'pt'));
       table.appendChild(tr);
@@ -2105,6 +2404,7 @@
     let colResult = null; // 図鑑登録の結果（初解禁 or 重複時の枚数/自己ベスト更新）
     let alumniResult = null; // ショート版を卒業した選手の、部の卒業生名簿への登録結果
     let cardNo = DT.state.loadRecords(undefined, GAME_MODE).length + 1; // 何人目の卒業生か（カードNo.）
+    if (state.avatar) card.avatar = state.avatar;
     if (!state.recorded) {
       colResult = DT.state.addToCollection(card, cardNo, undefined, GAME_MODE); // 図鑑へ登録（初解禁ならNEW表示）
       const prev = DT.state.loadRecords(undefined, GAME_MODE);
@@ -2444,6 +2744,11 @@
     const art = el('div', 'pcard-art');
     fillCardArt(art, card);
     art.appendChild(el('span', 'pcard-artlabel', 'ART: ' + card.typeLabel));
+    if (!card.isGallerySample) {
+      const face = el('div', 'pcard-face');
+      mountAvatar(face, avatarOf(card));
+      art.appendChild(face);
+    }
     inner.appendChild(art);
     // 能力CP／通算pt
     const nums = el('div', 'pcard-nums');
@@ -2657,6 +2962,27 @@
     rr(24, 188, W - 48, 300, 20);
     ctx.fillStyle = card.expelled ? '#252b36' : '#141f3d'; ctx.fill();
     ctx.strokeStyle = card.expelled ? '#3a414f' : '#3b4f86'; ctx.lineWidth = 2; ctx.stroke();
+    function drawCardFace(cb) {
+      if (!DT.avatar || card.isGallerySample) { cb(); return; }
+      const size = 108, x = 490, y = 362;
+      const markup = DT.avatar.svgString(avatarOf(card), {})
+        .replace('<svg ', '<svg width="' + size + '" height="' + size + '" ');
+      const img = new Image();
+      img.onload = () => {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2); ctx.closePath();
+        ctx.fillStyle = '#0e1830'; ctx.fill();
+        ctx.clip();
+        ctx.drawImage(img, x, y, size, size);
+        ctx.restore();
+        ctx.beginPath(); ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+        ctx.strokeStyle = '#eaf2ff'; ctx.lineWidth = 3; ctx.stroke();
+        URL.revokeObjectURL(img.src);
+        cb();
+      };
+      img.onerror = () => cb();
+      img.src = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
+    }
     // 数値・ステータス・フッター（アート描画の完了後に確定描画→保存）
     const drawRest = () => {
       // ART:ラベルはアートの上に載せる（画像がパネル全面を覆うケースにも対応）
@@ -2685,7 +3011,7 @@
       const bgLabel = (DT.DATA.BACKGROUNDS.find(b => b.id === card.background) || {}).label || '';
       ctx.fillStyle = '#8a9ac0'; ctx.font = '700 19px ' + FONT; ctx.textAlign = 'right';
       ctx.fillText(bgLabel + ' / No.' + String(cardNo).padStart(3, '0'), W - 34, H - 32); ctx.textAlign = 'left';
-      done(cv);
+      drawCardFace(() => done(cv));
     };
     // アート: 画像(CARD_IMAGE・same-origin)があればPNGをパネルにcover描画、無ければ署名SVG。画像失敗時はSVGへ。
     const artSrc = cardImageSrc(card.id);
@@ -2945,7 +3271,7 @@
           DT.engine.applyAction(state, act);
         }
       } else { state.didTrain = false; state.didStudy = false; }
-      // 練習後スロット: 大会 → 世界 → JJF → 固定イベント
+      // 練習後スロット: 大会 → 世界 → ジャグリング全国大会 → 固定イベント
       const contest = DT.contest.contestForTurn(state.turn);
       const wc = DT.contest.worldsContestForTurn(state.turn);
       const jq = DT.contest.jjfQualifierForTurn(state.turn);
@@ -2965,7 +3291,7 @@
         if (q.passed) {
           state.motivation = clampV(state.motivation + DT.DATA.JJF.passMotivation, 0, 100);
           state.jjfFinalist = 1;
-          state.results.push({ name: jq.name, type: 'jjf', division: 'qualifier', divisionLabel: 'JJF予選突破',
+          state.results.push({ name: jq.name, type: 'jjf', division: 'qualifier', divisionLabel: 'ジャグリング全国大会予選突破',
             rank: 1, entrants: 0, points: DT.DATA.JJF.finalistPoints, turn: state.turn, standings: [], rivalMessages: [] });
         } else { state.motivation = clampV(state.motivation - 8, 0, 100); }
       } else if (jf && state.jjfFinalist) {
