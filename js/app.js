@@ -9,7 +9,7 @@
 
   // 開発用表示（DEV PARAMSパネル・大会の不振理由）は URLに ?dev を付けたときだけ表示。
   // テスターには見えないようにするための切り替え。バージョンはタイトル画面に表示。
-  const APP_VERSION = 'v0.9 short-test9';
+  const APP_VERSION = 'v0.9 short-test10';
   const DEV = QUERY_PARAMS.has('dev');
   if (DEV) document.documentElement.classList.add('dev');
   if (SHORT) document.documentElement.classList.add('short-mode');
@@ -37,7 +37,6 @@
 
   // --- 練習スロット選択（UI状態。null=空き、'routine'、または{genre,method}） ---
   let slotsUI = new Array(DT.DATA.SLOTS.perMonth).fill(null);
-  let selectedGenre = null;
   let justSetSlot = -1;
   let previousSlotCount = 0;
   const METHOD_ACTION_LABEL = { difficulty: '高難度技', novelty: '新技開発', control: '反復練習' };
@@ -584,7 +583,6 @@
 
     // 毎月スロットは空にリセット（前月構成の引き継ぎはしない）。怪我中はルーチン構成のみ1枠
     slotsUI = state.injuredTurns > 0 ? [null] : new Array(DT.DATA.SLOTS.perMonth).fill(null);
-    selectedGenre = null;
     renderHomeActions();
 
     const log = $('#home-log');
@@ -1016,9 +1014,11 @@
 
     // 技術（レーダーグリッド＋詳細リンク）
     const techHead = el('div', 'pb-tech-head');
+    techHead.onclick = renderDetail;
+    techHead.setAttribute('role', 'button');
+    techHead.setAttribute('aria-label', '技術グリッド詳細を開く');
     techHead.appendChild(el('span', 'board-label', '技術'));
     const link = el('button', 'detail-link', '技術グリッド詳細 ▸');
-    link.onclick = renderDetail;
     techHead.appendChild(link);
 
     // 構成（演技構成）メーターをレーダーチャートの下に配置
@@ -1111,6 +1111,48 @@
     renderTrainMenu();
   }
 
+  // ジャンル×内容の表。マスを押すと空き枠へ入る。値は現在の能力値そのもの。
+  function renderTrainGrid() {
+    const grid = $('#train-grid');
+    const injured = state.injuredTurns > 0;
+    const empty = firstEmptySlot();
+    const nodes = [];
+    // 見出し行
+    nodes.push(el('div', 'tg-corner', ''));
+    DT.DATA.METHODS.forEach(m => nodes.push(el('div', 'tg-head', m.label)));
+    // ジャンル行
+    DT.DATA.GENRES.forEach(g => {
+      const unlocked = DT.contest.isGenreUnlocked(state, g.id);
+      const head = el('div', 'tg-genre' + (unlocked ? '' : ' locked'));
+      head.appendChild(el('b', '', unlocked ? g.label : '🔒 ' + g.label));
+      head.appendChild(el('small', '', unlocked ? '平均 ' + DT.contest.genreAvg(state, g.id) : '未解禁'));
+      nodes.push(head);
+      DT.DATA.METHODS.forEach(m => {
+        const entry = { genre: g.id, method: m.id };
+        const n = countSameEntry(entry);
+        const usable = unlocked && !injured && empty >= 0 && n < 2;
+        const cell = el('button', 'tg-cell m-' + m.id + (usable ? '' : ' locked') + (n ? ' picked' : ''));
+        cell.type = 'button';
+        cell.appendChild(el('span', 'tg-val num', String(state.skills[g.id][m.id])));
+        if (n) cell.appendChild(el('span', 'tg-count', '×' + n));
+        cell.setAttribute('aria-label', g.label + ' ' + methodActionLabel(m.id) + '（現在 ' + state.skills[g.id][m.id] + '）');
+        if (usable) cell.onclick = () => addSlotEntry(entry); else cell.disabled = true;
+        nodes.push(cell);
+      });
+    });
+    // ルーチン構成（全幅）
+    const rn = countSameEntry('routine');
+    const rUsable = empty >= 0 && rn < 2;
+    const routine = el('button', 'tg-routine' + (rUsable ? '' : ' locked') + (rn ? ' picked' : ''));
+    routine.type = 'button';
+    routine.appendChild(el('b', '', 'ルーチン構成'));
+    routine.appendChild(el('small', '', '演技構成 ' + state.composition + '・疲労回復' + (injured ? '　※怪我中はこれのみ' : '')));
+    if (rn) routine.appendChild(el('span', 'tg-count', '×' + rn));
+    if (rUsable) routine.onclick = () => addSlotEntry('routine'); else routine.disabled = true;
+    nodes.push(routine);
+    grid.replaceChildren(...nodes);
+  }
+
   function slotButton(s, idx) {
     if (!s) {
       const d = el('button', 'slot empty', '＋ 空き');
@@ -1141,67 +1183,20 @@
     mountAvatar(moodMini, avatarOf(state), moodKey);
     mountCharImage(moodMini, heroMoodSrc(moodKey), 'mood-mini-img');
 
-    // 画面上部に現在の能力値を表示（何を伸ばすか判断しやすく）
-    $('#trainmenu-skills').replaceChildren(
-      el('div', 'board-label', '能力値'),
-      skillTable(state.skills),
-      meterRow('演技構成', state.composition, { wideLabel: true })
-    );
-
     $('#slot-row').replaceChildren(...slotsUI.map(slotButton));
     justSetSlot = -1;
+    renderTrainGrid();
 
-    const injured = state.injuredTurns > 0; // 怪我中はルーチン構成のみ（ジャンル練習不可）
-    const empty = firstEmptySlot();
-
-    // ジャンル
-    if (injured) {
-      $('#genre-row').replaceChildren(el('div', 'train-hint', '怪我中はジャンル練習ができません（ルーチン構成のみ）'));
-    } else {
-      $('#genre-row').replaceChildren(...DT.DATA.GENRES.map(g => {
-        const unlocked = DT.contest.isGenreUnlocked(state, g.id);
-        const b = el('button', 'pick-btn' + (unlocked ? '' : ' locked') + (selectedGenre === g.id ? ' selected' : ''));
-        b.appendChild(document.createTextNode(unlocked ? g.label : '🔒 ' + g.label));
-        if (unlocked) {
-          b.appendChild(el('small', '', selectedGenre === g.id ? '選択中' : 'タップ'));
-          b.onclick = () => { selectedGenre = (selectedGenre === g.id) ? null : g.id; renderTrainMenu(); };
-        } else {
-          const req = DT.DATA.SKILL_TREE[g.id].requires;
-          b.appendChild(el('small', '', '未解禁'));
-          b.disabled = true;
-          b.title = genreLabel(req.genre) + 'の習熟' + req.threshold + '超で解禁';
-        }
-        return b;
-      }));
-    }
-
-    // メソッド。怪我中はルーチン構成のみ、通常時は3種＋ルーチン構成
-    const routineMaxed = countSameEntry('routine') >= 2;
-    const routineUsable = empty >= 0 && !routineMaxed;
-    const routineBtn = el('button', 'pick-btn m-routine' + (routineUsable ? '' : ' locked'));
-    routineBtn.appendChild(document.createTextNode('ルーチン構成'));
-    routineBtn.appendChild(el('small', '', routineMaxed ? '上限（2つまで）' : '演技構成・回復'));
-    if (routineUsable) { routineBtn.onclick = () => addSlotEntry('routine'); } else { routineBtn.disabled = true; }
-
-    if (injured) {
-      $('#method-row').replaceChildren(routineBtn);
-    } else {
-      const methodBtns = DT.DATA.METHODS.map(m => {
-        const entry = selectedGenre ? { genre: selectedGenre, method: m.id } : null;
-        const maxed = entry ? countSameEntry(entry) >= 2 : false; // 同じ内容は2つまで
-        const usable = empty >= 0 && !!selectedGenre && !maxed;
-        const b = el('button', 'pick-btn m-' + m.id + (usable ? '' : ' locked'));
-        b.appendChild(document.createTextNode(methodActionLabel(m.id)));
-        b.appendChild(el('small', '', maxed ? '上限（2つまで）' : m.label));
-        if (usable) {
-          b.onclick = () => { if (selectedGenre) addSlotEntry({ genre: selectedGenre, method: m.id }); };
-        } else {
-          b.disabled = true;
-        }
-        return b;
-      });
-      $('#method-row').replaceChildren(...methodBtns, routineBtn);
-    }
+    const lastTraining = state.lastTraining;
+    const canRepeat = Array.isArray(lastTraining) && lastTraining.length === 3
+      && (state.injuredTurns <= 0 || lastTraining.every(s => s === 'routine'));
+    const repeat = $('#btn-train-repeat');
+    repeat.classList.toggle('hidden', !canRepeat);
+    repeat.onclick = canRepeat ? () => {
+      slotsUI = JSON.parse(JSON.stringify(state.lastTraining));
+      justSetSlot = -1;
+      renderTrainMenu();
+    } : null;
 
     const goButton = $('#btn-training-go');
     const slotCount = slotsUI.filter(Boolean).length;
@@ -1447,6 +1442,7 @@
     pendingMessages = [];
     pendingActionId = actionId;
     pendingSlots = slots || null;
+    if (slots) state.lastTraining = JSON.parse(JSON.stringify(slots));
     pendingSkipAction = false;
     if (SHORT || actionId === 'injured') { runActionPhase(); return; } // ショート版の偶数月と療養ターンは前スロット無し
     runPreSlot();
@@ -1969,13 +1965,20 @@
     // 同じクラスの連続表示でもプログレスアニメーションを先頭から再生する。
     void overlay.offsetWidth;
     overlay.classList.add('is-active');
-    monthTransitionTimer = setTimeout(() => {
-      stopMonthTransitionFrames(); // 非表示中にコマ送りを回し続けない
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(monthTransitionTimer);
+      stopMonthTransitionFrames();
+      overlay.onclick = null;
       overlay.classList.remove('is-active');
       overlay.classList.add('hidden');
       overlay.setAttribute('aria-hidden', 'true');
       onDone();
-    }, MONTH_TRANSITION_MS);
+    };
+    overlay.onclick = finish;
+    monthTransitionTimer = setTimeout(finish, MONTH_TRANSITION_MS);
   }
 
   function renderHomeWithPopups(logs) {
@@ -2064,7 +2067,7 @@
   // エントリー画面上部に現在の能力値（数値テーブル＋レーダー）を表示
   function renderEntryStatus() {
     $('#entry-status').replaceChildren(
-      el('div', 'board-label', '現在の能力値'),
+      el('div', 'board-label', '参考: 現在の能力値'),
       skillTable(state.skills),
       skillRadarGrid(state.skills),
       meterRow('演技構成', state.composition, { wideLabel: true })
@@ -3206,7 +3209,6 @@
 
     const uiRows = [
       devRow('slotsUI', slotsUI.map(s => !s ? 'null' : (s === 'routine' ? 'routine' : s.genre + '.' + s.method.slice(0, 4))).join(' | ')),
-      devRow('selectedGenre', selectedGenre || 'null'),
       devRow('status', state.status)
     ];
 

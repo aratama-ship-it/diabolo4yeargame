@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UX/UIレビュー 2026-08-29 — ４８ヶ月のディアボロ</title>
+<style>
+  :root { --cream:#fff8ec; --paper:#fff; --ink:#2b3a67; --soft:#64719c; --coral:#ff6b6b; --deep:#e6504f; --sun:#ffd166; --teal:#2ec4b6; --leaf:#7ac74f; --line:3px solid var(--ink); }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif; color:var(--ink); background:linear-gradient(180deg,#7ec8f5,#b9e3ff 40%,#e6f4ff); min-height:100vh; padding:20px 14px 60px; line-height:1.7; }
+  .wrap { max-width:1040px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+  .panel { background:var(--cream); border:var(--line); border-radius:20px; box-shadow:0 6px 0 rgba(30,60,110,.28); padding:18px 20px; }
+  h1 { font-size:1.5rem; letter-spacing:.03em; }
+  h1 small { display:block; font-size:.72rem; color:var(--soft); font-weight:700; letter-spacing:.1em; margin-top:2px; }
+  h2 { font-size:1.15rem; margin-bottom:8px; padding-bottom:6px; border-bottom:2px dashed #cfd6ea; }
+  h3 { font-size:1rem; margin:14px 0 4px; }
+  p { font-size:.92rem; }
+  .meta { font-size:.8rem; color:var(--soft); }
+  .ask { background:#fff3c4; border:var(--line); border-radius:14px; padding:12px 16px; }
+  .ask ol { padding-left:1.4em; font-size:.95rem; }
+  .ask li { margin:4px 0; }
+  .ask b { color:var(--deep); }
+  .rec { display:inline-block; background:var(--ink); color:#fff; border-radius:999px; padding:1px 10px; font-size:.72rem; margin-left:6px; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; background:var(--paper); border:2px solid var(--ink); border-radius:12px; overflow:hidden; }
+  th, td { padding:7px 9px; border-bottom:2px dotted #d8ddf0; text-align:left; vertical-align:top; }
+  th { background:#eef1fa; font-size:.74rem; color:var(--soft); letter-spacing:.06em; }
+  tr:last-child td { border-bottom:none; }
+  td.num { text-align:center; white-space:nowrap; }
+  .sev { display:inline-block; border-radius:999px; padding:1px 9px; font-size:.7rem; font-weight:800; border:2px solid var(--ink); }
+  .sev.h { background:var(--coral); color:#fff; } .sev.m { background:var(--sun); } .sev.l { background:#d1f4ef; }
+  .wave { display:inline-block; border-radius:6px; padding:0 7px; font-size:.7rem; font-weight:800; background:#e6eaf4; }
+  .finding { display:grid; grid-template-columns:200px 1fr; gap:16px; padding:14px 0; border-bottom:2px dashed #dfe4f2; }
+  .finding:last-child { border-bottom:none; }
+  .finding img { width:100%; border:2px solid var(--ink); border-radius:12px; background:#fff; }
+  .finding .shot2 { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .finding h4 { font-size:1rem; margin-bottom:6px; }
+  .fact, .interp, .prop, .impact { font-size:.88rem; margin:4px 0; padding-left:5.2em; text-indent:-5.2em; }
+  .fact::before   { content:"事実　"; color:var(--soft); font-weight:800; }
+  .interp::before { content:"解釈　"; color:#8a6116; font-weight:800; }
+  .prop::before   { content:"提案　"; color:#1f8a7e; font-weight:800; }
+  .impact::before { content:"効果　"; color:var(--deep); font-weight:800; }
+  .good { background:#eefcf8; border:2px solid var(--teal); border-radius:12px; padding:10px 14px; font-size:.88rem; }
+  .cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
+  .card { background:var(--paper); border:2px solid var(--ink); border-radius:14px; padding:12px 14px; }
+  .card h3 { margin-top:0; }
+  .card ul { padding-left:1.2em; font-size:.86rem; }
+  .card li { margin:3px 0; }
+  .note { font-size:.8rem; color:var(--soft); }
+  code { background:#eef1fa; padding:0 5px; border-radius:5px; font-size:.85em; }
+  @media (max-width:640px) { .finding { grid-template-columns:1fr; } .finding img { max-width:260px; } body { padding:12px 8px 40px; } .panel { padding:14px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="panel">
+  <h1>UX/UIレビュー — ４８ヶ月のディアボロ<small>UX REVIEW · 2026-08-29 · 対象: 公開中の v0.9（アバター統合・演出強化・大会名変更を含む版）</small></h1>
+  <p class="meta">方法: iPhone相当の幅（390×844）で新規プレイから卒業まで一周し、20画面を撮影・実測（文字サイズ・タップ領域・スクロール量・タップ数）。事実／解釈／提案を分けて書いています。</p>
+  <div class="ask" style="margin-top:12px">
+    <b>判断してほしいこと（4つ）</b>
+    <ol>
+      <li><b>Wave 1「毎ターンの摩擦を削る」</b> → <span class="rec" style="background:var(--teal)">実装済み・下の「対応状況」参照</span><br><span class="note">練習3枠を6タップ→3タップ／隠れている演技方針を見える位置へ／月送りのスキップ／小さすぎるタップ領域の底上げ。どれも挙動を変えず、小さく、毎ターン効く。</span></li>
+      <li><b>ホームの小レーダー4つを「ジャンル別バー4本＋前月比」に置き換える</b>案に賛成か。<span class="rec">推奨: 賛成</span><br><span class="note">79×69pxの三角では差が読めない（実測）。見た目が変わる判断なので確認したい。レーダーは詳細画面に残す。</span></li>
+      <li><b>絵文字アイコン（🏠📊⚙️🏅📖…）をアバターと同じインク線のSVGに置き換える</b>方針に賛成か。<span class="rec">推奨: 賛成・ただし後回し</span><br><span class="note">機種で見た目が変わりトーンが揃わない。効果は大きいが工数も大きいので Wave 4。</span></li>
+      <li><b>タイトルの説明文（115字）を削り、初回のホームで一言ずつ案内する</b>案に賛成か。<span class="rec">推奨: 賛成</span><br><span class="note">読まれない壁になっている。ただし「説明が無いと不安」という考えもあるので確認したい。</span></li>
+    </ol>
+  </div>
+</div>
+
+<div class="panel" id="wave1-done">
+  <h2>対応状況 — Wave 1 実装済み（2026-08-29・Codex実装／Claude検証）</h2>
+  <p>優先順位の #1・#2・#3の一部・#11 を実装し、390×844で実測して確認しました。<b>ゲームの計算・保存形式は変えていません</b>（見た目と手数だけ）。未コミット。</p>
+  <div class="finding">
+    <div class="shot2"><img src="shots/21-trainmenu-grid-empty.png" alt="練習メニュー（改修後・空）"><img src="shots/22-trainmenu-grid-filled.png" alt="練習メニュー（改修後・3枠）"></div>
+    <div>
+      <h4>C1 → 能力値の表そのものをタップして枠に入れる <span class="sev l">実装済</span></h4>
+      <p class="fact">4ジャンル×3内容の12マス＋ルーチン行。マス86×46px、値16.8px。<b>3枠＝3タップ</b>（改修前6タップ）。同じマスは「×2」で止まり、3枠埋まると全マス無効。画面はスクロール無し（GO下端567px）。</p>
+      <p class="fact">「🔁 前回と同じ」: 1回練習すると出現し、<b>1タップで3枠を復元</b>。セーブに <code>lastTraining</code> として残る。</p>
+      <p class="interp">2段階のボタンを消して「眺める表」を「選ぶ表」にした結果、練習画面から能力値の表の再掲（G2）も同時に消えた。どこが低いかを見ながら押せる。</p>
+      <p class="prop">残った小さな粗: 3枠埋まった状態では選んだマスの数字も灰色になる（右図）。選択済みマスだけ色を保つと「何を選んだか」がより読める。Wave 2 で。</p>
+    </div>
+  </div>
+  <div class="finding">
+    <img src="shots/23-entry-oidc-after.png" alt="大会エントリー（改修後）">
+    <div>
+      <h4>D1 → 部門 → 演技方針 → 参考表 の順に <span class="sev l">実装済</span></h4>
+      <p class="fact">演技方針ボックスは y=444〜627、固定ボタンは y=776 → <b>隠れずに全部見える</b>（改修前は画面外＋ボタンの背後）。原因だった <code>#entry-divisions { margin-top:auto }</code>（部門を画面下へ押し下げていた）を解除。</p>
+      <p class="prop">方針ボタンの文言が「安全にま／とめる」と折り返す（改修前から）。Wave 2 の D2（部門ボタンに自分の値）と一緒に、ラベルを「安全／通常／攻め」の2文字＋補足に整理する。</p>
+    </div>
+  </div>
+  <div class="finding">
+    <div></div>
+    <div>
+      <h4>B2・G5・G4 <span class="sev l">実装済</span></h4>
+      <p class="fact">技術見出し行が行全体でタップ対象（340×40px、改修前はピル23px）。ポイントチップ34px。月送りは全面タップで<b>1msで次へ</b>（「タップで進む」の案内つき・二重実行なし）。<code>mobile-web-app-capable</code> 併記。</p>
+      <p class="fact">テスト269件通過（今回6件追加）。詳細は <code>docs/plans/2026-08-29-ux-wave1-spec.md</code> の検証記録。</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>要約</h2>
+  <p><b>核となる体験（練習→成長→大会→カード）は成立していて、演出・アバター・順位発表・パック開封は既に「ゲームらしい」。</b>
+  いま足を引っ張っているのは見た目の新しさではなく、<b>①毎ターンの摩擦（タップ数・隠れた選択肢）</b>、<b>②読めない文字と押しにくい小さなUI</b>、<b>③「前より良くなった」が見えない</b>（周回ゲームなのに前回比が無い）の3つ。</p>
+  <p style="margin-top:6px">同じ能力値の表が4画面に再掲される一方で、本当に判断に要る情報（この部門はあなたの何点か／この練習で何が何点伸びるか／前回と比べてどうか）が出ていない。<b>情報を減らして、判断に効く数字に置き換える</b>のが今回の方向です。</p>
+  <div class="good" style="margin-top:10px"><b>良いところ（変えない）</b>: おもちゃ箱の紙工作トーン／「結果を受け止める」等の固有の言葉／部門ごとに間を取る順位発表／パック開封→カード→成績表の流れ／アバターが名簿・カード・イベントで一貫して同じ顔／「次のイベント」枠で先が見える／練習リザルトのタップスキップ</div>
+</div>
+
+<div class="panel">
+  <h2>優先順位（効果×手間）</h2>
+  <table>
+    <tr><th>#</th><th>指摘</th><th>重さ</th><th>手間</th><th>Wave</th></tr>
+    <tr><td class="num">1</td><td>練習3枠を埋めるのに6タップ。ジャンルを保持すれば3タップ、「前回と同じ」なら1タップ</td><td class="num"><span class="sev h">高</span></td><td class="num">小</td><td class="num"><span class="wave">1</span></td></tr>
+    <tr><td class="num">2</td><td>大会エントリーの「演技方針」が画面外＋固定ボタンの背後で、存在に気づけない</td><td class="num"><span class="sev h">高</span></td><td class="num">小</td><td class="num"><span class="wave">1</span></td></tr>
+    <tr><td class="num">3</td><td>9〜11pxの文字が多い／「技術グリッド詳細」等のタップ高さ23px</td><td class="num"><span class="sev h">高</span></td><td class="num">中</td><td class="num"><span class="wave">1→2</span></td></tr>
+    <tr><td class="num">4</td><td>順位・成長に「前回比」が無い（周回の報酬が見えない）</td><td class="num"><span class="sev h">高</span></td><td class="num">中</td><td class="num"><span class="wave">3</span></td></tr>
+    <tr><td class="num">5</td><td>ホームの小レーダー4つが情報になっていない → バー4本＋前月比へ</td><td class="num"><span class="sev m">中</span></td><td class="num">中</td><td class="num"><span class="wave">2</span></td></tr>
+    <tr><td class="num">6</td><td>部門名と能力の対応が読めない（「1ディアボロ水平軸部門」＝1DH と分からない）</td><td class="num"><span class="sev m">中</span></td><td class="num">小</td><td class="num"><span class="wave">2</span></td></tr>
+    <tr><td class="num">7</td><td>NPCイベントの発生率12.5%。作った顔が1周に1〜2回しか出ない</td><td class="num"><span class="sev m">中</span></td><td class="num">小</td><td class="num"><span class="wave">3</span></td></tr>
+    <tr><td class="num">8</td><td>タイトルの説明文の壁／スカウト画面で意味の分からない数値表が先に来る</td><td class="num"><span class="sev m">中</span></td><td class="num">中</td><td class="num"><span class="wave">4</span></td></tr>
+    <tr><td class="num">9</td><td>図鑑が「???」×50から始まり、次の1枚の目標が無い</td><td class="num"><span class="sev m">中</span></td><td class="num">中</td><td class="num"><span class="wave">3</span></td></tr>
+    <tr><td class="num">10</td><td>絵文字がUIアイコンを兼ねていてトーンが揃わない</td><td class="num"><span class="sev l">低</span></td><td class="num">大</td><td class="num"><span class="wave">4</span></td></tr>
+    <tr><td class="num">11</td><td>月送り1.5秒×24回にスキップが無い</td><td class="num"><span class="sev l">低</span></td><td class="num">小</td><td class="num"><span class="wave">1</span></td></tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>A. 最初の3分（オンボーディング）</h2>
+
+  <div class="finding">
+    <img src="shots/01-title.png" alt="タイトル">
+    <div>
+      <h4>A1. 説明文が「壁」になっている <span class="sev m">中</span> <span class="wave">4</span></h4>
+      <p class="fact">説明文は115字・12.5px、高さ133px。絵（349px）の直上に置かれ、ボタンの前に読ませる構成。</p>
+      <p class="interp">プレイ前に読んでも実感が無く、大半は読み飛ばす。読む人にとっても「疲労」「枠」「カード」など未体験の語が並ぶ。</p>
+      <p class="prop">説明文を消し、絵を主役にする。ルールは初回のホームで「まず練習を選んでみよう」→練習画面で「ジャンル→内容の順」→結果画面で「大成功で伸びが2倍」と、<b>その画面でその1行だけ</b>出す（2周目からは出さない）。</p>
+      <p class="impact">タイトルが「遊びたくなる絵」になり、ルールは触りながら覚える。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <img src="shots/02-scout.png" alt="新入生スカウト">
+    <div>
+      <h4>A2. スカウト画面で「意味の分からない表」が先に来る <span class="sev m">中</span> <span class="wave">4</span></h4>
+      <p class="fact">顔・名前・経歴のあとに、能力値12マス＋レーダー4つ＋ゲージ2本。引き直しボタンは非表示なので、この数値は<b>見るだけで選べない</b>。</p>
+      <p class="interp">選べない数値を詳しく見せても判断材料にならない。新規プレイヤーには「難易度／新奇性／操作安定度」の区別がまだ無い。</p>
+      <p class="prop">表を1行の要約に畳む（例:「得意: 1DH ／ 平均 27 ／ 学力 41」）。詳細はタップで開く。画面の主役を「顔をつくる」と名前にする。</p>
+      <p class="impact">スカウト画面が「自分の選手を作る場所」として読める。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <img src="shots/04-registration.png" alt="登録確認">
+    <div>
+      <h4>A3. 登録確認が「変更できません」から始まる <span class="sev l">低</span> <span class="wave">4</span></h4>
+      <p class="fact">先頭の文が「登録後、主人公の名前は変更できません。」</p>
+      <p class="interp">顔と名前を確かめる嬉しい場面が、注意書きから始まって固くなる。</p>
+      <p class="prop">顔を大きく（78→110px）、名前を主役に、「この選手で4年間を駆け抜ける？」の一言。注意書きは名前変更ボタンの下へ小さく。</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>B. ホーム（毎ターンの起点）</h2>
+
+  <div class="finding">
+    <img src="shots/05-home.png" alt="ホーム">
+    <div>
+      <h4>B1. 9〜11pxの文字が多く、屋外・視力差で読めない <span class="sev h">高</span> <span class="wave">1→2</span></h4>
+      <p class="fact">実測: TURN表示 9.3px／「技術グリッド詳細」9.9px／行動ボタンの説明 10.2px／ボトムナビの文字 10.2px／盤面ラベル 10.6px／ログ帯 10.9px／予定一覧の日付・補足 9.3px／図鑑のカード名 9.9px／練習内容の補足 8.8px。</p>
+      <p class="interp">iOSで実用的な最小は11pt前後。装飾ラベルなら許容だが、「何が起きるか」を伝える説明文（行動の説明・練習内容の補足）がこの大きさなのは判断に響く。ホームを1画面に収めるために縮めた結果。</p>
+      <p class="prop">最小11px・説明文12pxを下限にし、そのぶん<b>情報を減らす</b>（B3のレーダー置き換えで高さが空く）。ボトムナビは文字を消してアイコンだけ＋aria-labelでもよい（多言語方針とも一致）。</p>
+      <p class="impact">読めるようになる。減らした情報は詳細画面に残るので失うものはない。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div>
+      <img src="shots/07-detail.png" alt="詳細">
+    </div>
+    <div>
+      <h4>B2. タップできる小さなピルが44pxを大きく下回る <span class="sev h">高</span> <span class="wave">1</span></h4>
+      <p class="fact">「技術グリッド詳細 ▸」の高さ23px。同種の「pt ▸」「記録ログ ▸」も同程度。行動ボタン（58〜61px）とナビ（58px）は十分。</p>
+      <p class="interp">押せる見た目（ピル）なのに指では狙いにくく、押し損ねが「反応しない」に見える。</p>
+      <p class="prop">ピルを大きくするのではなく、<b>行全体（「技術」見出し行／ポイントの帯／ログ帯）をタップ対象にする</b>。高さは自然に40px以上になる。ピルは「押せる印」として残す。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <img src="shots/08-radar-modal.png" alt="レーダー拡大">
+    <div>
+      <h4>B3. 小レーダー4つが情報になっていない <span class="sev m">中</span> <span class="wave">2</span></h4>
+      <p class="fact">ホームのレーダーは1つ79×69px。3軸の三角形で、値14／24／25の差が図では読めない（拡大モーダルでは読める）。</p>
+      <p class="interp">ホームで本当に要るのは「どのジャンルが伸びていて、次に何を鍛えるか」。三角の形より、<b>ジャンル別の平均値と前月比</b>のほうが判断に直結する。レーダーは「形で個性を見る」用途で、詳細画面に置くのが合う。</p>
+      <p class="prop">ホームの技術欄を <code>1DH ████████ 27 ▲6</code> のようなバー4本に置き換える（既存のゲージ部品で作れる）。前月比は今月の練習で伸びた分。未解禁は鍵付きバー。レーダーは詳細画面とタップ拡大に残す。</p>
+      <p class="impact">練習の成果がホームに「▲6」として残り、C4（成果と成長の接続）にもつながる。高さも減る（B1の余白に回せる）。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <img src="shots/06-schedule.png" alt="今後の予定">
+    <div>
+      <h4>B4. ログ帯が毎ターン同じ固定文 <span class="sev m">中</span> <span class="wave">3</span></h4>
+      <p class="fact">ホーム下部のログ帯は「💬 偶数月の行動を決めよう。次の奇数月はイベント！」で、ターンが進んでも変わらない（大会後など一部の月のみ差し替わる）。</p>
+      <p class="interp">毎回同じ文は読まれなくなる。ここは「前回何が起きたか」を1行で積む場所にすると、ループの手応えが残る。</p>
+      <p class="prop">「先月: 1DH×難易度 +6・大成功1／野中コーチと話した」のように<b>直前の結果の要約</b>を出す。「▸ 記録ログ」はそのまま。初回だけ現行の案内文。</p>
+      <p class="fact">なお「今後の予定」一覧（右）は44行あり、先が見えるのは良い。ただし日付・補足が9.3px。</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>C. 練習（核のループ）</h2>
+
+  <div class="finding">
+    <div class="shot2"><img src="shots/09-trainmenu-empty.png" alt="練習メニュー（空）"><img src="shots/10-trainmenu-filled.png" alt="練習メニュー（3枠）"></div>
+    <div>
+      <h4>C1. 3枠を埋めるのに6タップ <span class="sev h">高</span> <span class="wave">1</span></h4>
+      <p class="fact">枠1つにつき「①ジャンル→②内容」の2タップで、3枠=6タップ＋GO。同じジャンルを続けて選んでも毎回ジャンルから。24ターン×6=144タップ/周。</p>
+      <p class="interp">周回ゲームで最も繰り返す操作。ジャンル選択はほとんど「前と同じ」なので、毎回選ばせる必然性が無い。</p>
+      <p class="prop">①ジャンルを<b>選択中のまま保持</b>し、内容タップだけで次の空き枠に入る（3枠=3〜4タップ）。②「前回と同じ3枠」ボタンを追加（1タップ）。③枠をタップで外す×は残す。</p>
+      <p class="impact">1周あたり最大約100タップ減。2周目以降の「作業感」がいちばん減る改善。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div></div>
+    <div>
+      <h4>C2/C3. 表の再掲と、効果の説明が無い内容ボタン <span class="sev m">中</span> <span class="wave">2</span></h4>
+      <p class="fact">練習メニュー上部に能力値の表（ホーム・詳細・エントリーと合わせて4画面目）。内容ボタンは「高難度技／難易度」と項目名を2度書いているだけで、補足は8.8px。</p>
+      <p class="interp">ここで知りたいのは「この内容を入れると何が何点伸びそうか」。表は答えていない。</p>
+      <p class="prop">表を消し、内容ボタンに<b>見込み</b>を出す（例:「高難度技　難易度 +4〜8」。数値は engine の tier 確率から算出可能）。選んだジャンルの現在値だけを1行で（「1DH: 難30 新34 操41」）。</p>
+      <p class="impact">練習画面が「表を眺める」から「伸ばす場所を選ぶ」に変わる。高さも減る。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <img src="shots/11-training-result.png" alt="練習の成果">
+    <div>
+      <h4>C4. 成果画面の下2/3が空白 <span class="sev l">低</span> <span class="wave">3</span></h4>
+      <p class="fact">まとめカードの下に565pxの空白（画面844px）。演出（ハンコ・カウントアップ・合計ピル）は入っている。</p>
+      <p class="interp">空白を埋める必要はないが、「練習→能力に反映」の因果がこの画面で切れている。伸びた数字がどこへ行ったかは、ホームに戻って探すことになる。</p>
+      <p class="prop">まとめカードの下に、<b>伸びたジャンルのバーだけ</b>を出して「27 → 33」と伸びる（B3のバー部品を流用）。空白を埋めるためではなく、成果と成長をつなぐ場所として使う。</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>D. 大会</h2>
+
+  <div class="finding">
+    <img src="shots/13-entry-oidc.png" alt="大会エントリー">
+    <div>
+      <h4>D1. 「演技方針」が画面外＋固定ボタンの背後 <span class="sev h">高</span> <span class="wave">1</span></h4>
+      <p class="fact">部門5つの下に「演技方針（全部門共通）」の3択があるが、初期表示では折り返しの下にあり、固定CTA「この内容でエントリー」に上端が隠れている（右図の下端）。</p>
+      <p class="interp">安全／通常／攻めは戦略の要素なのに、存在に気づかないまま「いつも通り」で出場し続ける。作った機能が使われない。</p>
+      <p class="prop">方針を<b>部門選択の上</b>（能力表の位置）へ移す。部門を1つ以上選ぶまでは方針を薄く表示。能力表はD2の形に畳む。</p>
+      <p class="impact">選択が見える。エントリー画面が「部門＋方針」の2つの判断として読める。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div></div>
+    <div>
+      <h4>D2. 部門名と自分の能力の対応が読めない <span class="sev m">中</span> <span class="wave">2</span></h4>
+      <p class="fact">部門は「1ディアボロ水平軸部門」、表は「1DH」。同じものだと初見で結びつかない。総合部門が4ジャンル平均であることも表からは分からない。</p>
+      <p class="prop">部門ボタンの右に<b>その部門で使われる自分の値</b>を出す（「1ディアボロ水平軸部門　あなた: 35」「個人総合　あなた: 31（4ジャンル平均）」）。表は消せる。</p>
+      <p class="impact">「どこに出れば勝負になるか」が部門ボタンだけで判断できる。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <img src="shots/14-contest-reveal.png" alt="順位発表">
+    <div>
+      <h4>D3. 順位に「前回比」が無い <span class="sev h">高</span> <span class="wave">3</span></h4>
+      <p class="fact">順位・人数・点・pt・内訳・順位表は出るが、<b>同じ大会の前回順位／自己ベスト</b>は出ない。データ（state.results）にはある。</p>
+      <p class="interp">周回・年次のゲームで「前より良くなった」がいちばんの報酬なのに、それを計算するのがプレイヤー任せ。16位でも「前回20位→▲4」なら前向きに受け取れる。</p>
+      <p class="prop">順位の下に「前回 20位 → ▲4」または「初出場」。自己ベスト更新なら小さな紙吹雪。卒業画面の成績表にも前年比の列。</p>
+      <p class="impact">負けた大会にも意味が生まれる。順位発表の演出（既に良い）が報酬として完成する。</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>E. イベント</h2>
+
+  <div class="finding">
+    <div class="shot2"><img src="shots/15-event-npc.png" alt="NPCイベント"><img src="shots/16-event-result.png" alt="結果"></div>
+    <div>
+      <h4>E1. 場面感が無く、画面の7割が背景 <span class="sev l">低</span> <span class="wave">4</span></h4>
+      <p class="fact">顔64px＋名前＋本文カード＋選択肢が中央に集まり、上下は無地のグラデーション。</p>
+      <p class="interp">顔が入って「誰と話しているか」は分かるようになった。次は「どこで」。部活の一場面として、床の線・窓の光程度の薄い背景があるだけで場面になる。</p>
+      <p class="prop">顔を96pxに、背景に体育館／部室／会場の3種の薄い舞台（SVGの線画で軽く）。話者によって切替。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div></div>
+    <div>
+      <h4>E3. NPCイベントの発生率が低く、顔が出ない <span class="sev m">中</span> <span class="wave">3</span></h4>
+      <p class="fact">キャラクターイベント12種、発生率12.5%／奇数月。1周12回の奇数月で期待値1.5回。今回のレビューでも自然には出ず、確率を1に上げて撮影した。</p>
+      <p class="interp">NPC10人の顔を作った効果が、1周に1〜2回では出ない。奇数月の「できごと」（10種、話者なし）も、NPCの口を借りれば顔が出せる。</p>
+      <p class="prop">奇数月は<b>必ず誰かが話しかける</b>形にする（発生率を上げるか、quietイベントに話者を割り当てる）。同じ人が続かないよう直近3回の話者を避ける。</p>
+      <p class="impact">部の仲間が「いる」実感。イベント本文（平均31字）は短いので、頻度を上げてもテンポは落ちない。</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>F. 卒業・収集（周回の動機）</h2>
+
+  <div class="finding">
+    <div class="shot2"><img src="shots/17-ending-pack.png" alt="パック"><img src="shots/18-ending-card.png" alt="カード"></div>
+    <div>
+      <h4>F1. 締めが61行の成績表 <span class="sev l">低</span> <span class="wave">3</span></h4>
+      <p class="fact">パック開封→カードは良い。その下に成績表61行が続き、スクロールして「タイトルへ」。</p>
+      <p class="interp">周回の締めとして先に欲しいのは「今回のハイライト3つ」と「前回との比較」。全戦績は折りたたみでよい。</p>
+      <p class="prop">カードの下に「ハイライト」（最高順位／伸びが最大だったジャンル／前回比）を3行。成績表は「全戦績を見る ▸」で開く。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="shot2"><img src="shots/19-zukan.png" alt="図鑑"><img src="shots/20-records-empty.png" alt="記録（空）"></div>
+    <div>
+      <h4>F2/F3. 図鑑が「???」×50、記録は文だけの空状態 <span class="sev m">中</span> <span class="wave">3</span></h4>
+      <p class="fact">初回の図鑑は50枚すべて「???」（コンプ率0/50）。記録は「まだ記録がありません」の1行。</p>
+      <p class="interp">50枚は初周のプレイヤーには遠すぎて目標にならない。「次の1枚」が見えると周回の理由ができる。</p>
+      <p class="prop">図鑑の先頭に「<b>次に狙えるカード</b>」を1枚だけ条件付きで見せる（例:「Bランクで卒業 →『器用な選手』」。条件は cards.js の判定から出せる）。記録の空状態にも「1周目の目標: 1年OIDCで10位以内」など1つ。</p>
+      <p class="impact">周回に「次はこれ」ができる。図鑑が眺める場所から目標の場所になる。</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>G. 全体・一貫性</h2>
+  <div class="cols">
+    <div class="card"><h3>G1. 絵文字＝UIアイコン <span class="sev l">低</span> <span class="wave">4</span></h3><ul><li>🏠📊⚙️🏅📖🌸💾🤝📝🏆💬💡 が機能アイコンを兼ねる。機種・OSで見た目が変わり、行動ボタンの自作アイコン3つとトーンが揃わない。</li><li>提案: ナビ3つ＋モーダル見出し＋予定一覧のアイコンを、アバターと同じインク線のSVGに。多言語方針（アイコン基本）とも一致。</li></ul></div>
+    <div class="card"><h3>G2. 同じ表が4画面 <span class="sev m">中</span> <span class="wave">2</span></h3><ul><li>能力値の表: ホーム／詳細／練習／エントリー。</li><li>提案: 詳細画面を「正」とし、他は各画面の判断に要る形（B3バー／C2見込み／D2部門値）へ置き換える。</li></ul></div>
+    <div class="card"><h3>G5. 月送りにスキップが無い <span class="sev l">低</span> <span class="wave">1</span></h3><ul><li>1.5秒×24回＝36秒/周。演出は良いが、練習リザルトにはスキップを入れたのに月送りには無い。</li><li>提案: タップで残り時間を飛ばす（初回のみ完走）。</li></ul></div>
+    <div class="card"><h3>G4. 技術メモ <span class="sev l">低</span></h3><ul><li><code>apple-mobile-web-app-capable</code> が非推奨警告。<code>mobile-web-app-capable</code> を併記する（1行）。</li><li>実機で未確認: iPhone Safari のセーフエリア／PWAスタンドアロン時の高さ／音・振動は未実装。</li></ul></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>提案する進め方（4つのWave）</h2>
+  <div class="cols">
+    <div class="card"><h3><span class="wave">1</span> 毎ターンの摩擦を削る</h3><ul><li>C1 練習: ジャンル保持＋「前回と同じ」</li><li>D1 演技方針を部門の上へ</li><li>B2 小さなピルの行全体をタップ対象に</li><li>G5 月送りのタップスキップ</li><li>G4 メタタグ1行</li></ul><p class="note">挙動を変えない小改修。Codexに1回で投げられる。</p></div>
+    <div class="card"><h3><span class="wave">2</span> 読める・判断できる</h3><ul><li>B1 文字の下限 11px／説明12px</li><li>B3 ホームの技術欄をバー4本＋前月比へ</li><li>C2/C3 練習の表→見込み表示</li><li>D2 部門ボタンに自分の値</li><li>G2 表の再掲を解消</li></ul><p class="note">情報設計の変更。トークンシートを更新してから実装。</p></div>
+    <div class="card"><h3><span class="wave">3</span> 周回の報酬</h3><ul><li>D3 順位の前回比・自己ベスト</li><li>B4 ログ帯に直前の結果</li><li>C4 成果画面に伸びたバー</li><li>E3 奇数月は必ず誰かが話す</li><li>F1/F2/F3 ハイライト・次の1枚・空状態の目標</li></ul><p class="note">「前より良くなった」を全画面で見せる。</p></div>
+    <div class="card"><h3><span class="wave">4</span> 世界観の統一</h3><ul><li>A1/A2/A3 オンボーディングの軽量化</li><li>G1 SVGアイコン化</li><li>E1 イベントの舞台背景</li></ul><p class="note">見た目に関わるので方向を確認してから。</p></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>方法と不確かさ</h2>
+  <p class="note">
+    <b>測ったこと</b>: 390×844（iPhone 14/15相当）で新規プレイ→キャラメイク→練習→イベント→大会→卒業→図鑑を一周。各画面の文字サイズ・要素の高さ・スクロールの有無・タップ数を DOM から実測。撮影20枚は <code>shots/</code>。<br>
+    <b>測っていないこと</b>: 実機（iPhone Safari／PWAスタンドアロン）での見え方、音、長期プレイのバランス、複数人のテストプレイでの反応。「読めない」「気づかない」は実測値と一般的な基準（iOS HIG の最小タップ44pt・実用文字11pt前後）からの推定で、テスターの声で裏を取るのが望ましい。<br>
+    <b>解釈の前提</b>: 対象プレイヤーはディアボロ経験者で、スマホで隙間時間に周回する。1周目の分かりやすさより2周目以降の摩擦を重く見ている。<br>
+    <b>関連</b>: 設計方針は <code>design/TOKEN_SHEET.md</code>、アバターは <code>docs/plans/2026-08-28-avatar-system-plan.md</code>、演出は <code>docs/plans/2026-08-28-game-feel-plan.md</code>。
+  </p>
+</div>
+
+</div>
+</body>
+</html>

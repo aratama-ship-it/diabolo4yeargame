@@ -23,3 +23,6 @@
 
 # アバター検証ページの単体版は生成物（scripts/build-avatar-lab.mjs で再生成できる）
 /design/*-standalone.html
+
+# Playwright(レビュー撮影)の作業ファイルは追跡しない
+/.playwright-mcp/

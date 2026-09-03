@@ -264,6 +264,48 @@ test('MONTH TRANSITION: ディアボロは学年の数だけ並ぶ（1年生=1�
   assert.match(css, /\.mt-string\s*\{[^}]*stroke:/);
 });
 
+test('UX1: 練習は能力値の表をタップして枠に入れる', () => {
+  assert.match(html, /id="train-grid"/);
+  assert.match(html, /id="btn-train-repeat"/);
+  assert.doesNotMatch(html, /id="(?:genre-row|method-row|trainmenu-skills)"/);
+  assert.match(app, /function renderTrainGrid\(/);
+  assert.match(app, /state\.lastTraining\s*=/);
+});
+
+test('UX1: 大会は部門→演技方針→参考表の順', () => {
+  assert.ok(html.indexOf('id="entry-divisions"') < html.indexOf('id="entry-status"'));
+  const divisionsRule = css.match(/#entry-divisions\s*\{([^}]*)\}/);
+  assert.ok(divisionsRule, '#entry-divisionsルールが必要');
+  assert.doesNotMatch(divisionsRule[1], /margin-top:\s*auto/);
+});
+
+test('UX1: 技術見出し行は行全体で詳細を開く', () => {
+  assert.match(app, /techHead\.onclick\s*=\s*renderDetail/);
+  assert.match(css, /\.pb-tech-head\s*\{[^}]*min-height:\s*40px/);
+});
+
+test('UX1: 月送りはタップで飛ばせる', () => {
+  const transition = app.match(/function showMonthTransition\([\s\S]*?\n  function renderHomeWithPopups/);
+  assert.ok(transition, 'showMonthTransitionが必要');
+  assert.match(transition[0], /overlay\.onclick\s*=\s*finish/);
+  assert.match(html, /class="month-transition-skip"/);
+});
+
+test('UX1: mobile-web-app-capable を併記', () => {
+  assert.match(html, /name="mobile-web-app-capable"/);
+});
+
+test('UX1: 新設テキストは11px未満にしない', () => {
+  ['.tg-head', '.tg-genre small', '.tg-routine small', '.month-transition-skip', '.slot-repeat'].forEach(selector => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rule = css.match(new RegExp(escaped + '\\s*\\{([^}]*)\\}'));
+    assert.ok(rule, selector + 'ルールが必要');
+    const size = rule[1].match(/font-size:\s*([0-9.]+)rem/);
+    assert.ok(size, selector + 'にremのfont-sizeが必要');
+    assert.ok(Number(size[1]) >= 0.7, selector + 'は.7rem以上にする');
+  });
+});
+
 summary();
 
 test('RENAME: 大会の表示名はジャグリング全国大会に統一する', () => {
