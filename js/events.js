@@ -42,6 +42,37 @@
     return null;
   }
 
+  // 直近の話者（同じ人が続くのを避ける）。保存データに残るが、無くても動く。
+  function recentSpeakers(state) {
+    if (!Array.isArray(state.recentSpeakers)) state.recentSpeakers = [];
+    return state.recentSpeakers;
+  }
+  function rememberSpeaker(state, charId) {
+    if (!charId) return;
+    const list = recentSpeakers(state);
+    list.push(charId);
+    while (list.length > 3) list.shift();
+  }
+
+  // 静かな月の1件を選ぶ。話者つきを優先し（約75%）、直近3人は避ける。
+  // 話者つきが引けないときは地の文へ落とす（必ず1件返す）。
+  function pickQuietEvent(state, rng) {
+    const all = DT.DATA.EVENTS.quietEvents;
+    const narration = all.filter(e => !e.char);
+    const spoken = all.filter(e => e.char);
+    const recent = recentSpeakers(state);
+    const wantNarration = rng() < 0.25;
+    if (!wantNarration && spoken.length) {
+      const fresh = spoken.filter(e => recent.indexOf(e.char) < 0);
+      const pool = fresh.length ? fresh : spoken;
+      const picked = pool[pickIndex(pool.length, rng)];
+      rememberSpeaker(state, picked.char);
+      return picked;
+    }
+    if (narration.length) return narration[pickIndex(narration.length, rng)];
+    return all[pickIndex(all.length, rng)];
+  }
+
   // ショート版の奇数月用。強イベントの従来確率は維持し、「何も起きない」帯を日常イベントへ置き換える。
   function rollGuaranteed(state, rng) {
     rng = rng || Math.random;
@@ -54,12 +85,17 @@
     const probs = DT.DATA.EVENTS.probs;
     const roll = rng();
     if (charEvents.length && roll < probs.char) {
-      return { kind: 'char', event: charEvents[pickIndex(charEvents.length, rng)] };
+      const picked = charEvents[pickIndex(charEvents.length, rng)];
+      // 物語イベントの話者も覚えておく。ここを記録しないと「コーチの物語→コーチの日常会話」が
+      // 続けて出てしまう（2026-09-04 実測で0.17%発生していた）。抽選そのものは絞り込まない
+      // ＝一度きりの物語イベントを話者かぶりで潰さない。
+      rememberSpeaker(state, picked.char);
+      return { kind: 'char', event: picked };
     }
     if (happenings.length && roll >= probs.char && roll < probs.char + probs.happening) {
       return { kind: 'happening', event: happenings[pickIndex(happenings.length, rng)] };
     }
-    return { kind: 'quiet', event: quietEvents[pickIndex(quietEvents.length, rng)] };
+    return { kind: 'quiet', event: pickQuietEvent(state, rng) };
   }
 
   // 覚醒の調整値: ハード(経歴=大学から)は強化版（DATA.AWAKEN.hard）、それ以外は標準（DATA.AWAKEN）

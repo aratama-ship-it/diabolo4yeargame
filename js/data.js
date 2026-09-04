@@ -502,7 +502,27 @@
         { id: 'quiet_note', text: '練習ノートに、できたことと次に試したいことを一行ずつ書いた。', effects: {} },
         { id: 'quiet_tools', text: 'ハンドスティックの傷を眺める。使い込んだ道具が、少しだけ誇らしかった。', effects: {} },
         { id: 'quiet_watch', text: '隣の部員の練習をぼんやり眺めた。同じ技でも、癖は人それぞれだ。', effects: {} },
-        { id: 'quiet_pack', text: '練習後、ディアボロをケースへ戻した。今月も無事に終わった。', effects: {} }
+        { id: 'quiet_pack', text: '練習後、ディアボロをケースへ戻した。今月も無事に終わった。', effects: {} },
+        // ここから話者つきの日常会話（2026-09-04 追加）。
+        // 奇数月の大半が地の文で終わり、NPCの顔が1周に1〜2回しか出なかったため。
+        // 効果は持たせない（1周で約12回出るのでバランスに効いてしまう）。
+        { id: 'day_coach1', char: 'coach', text: '「うまい奴ほど、地味な練習の時間が長い。それだけだ」野中コーチはそう言って背を向けた。', effects: {} },
+        { id: 'day_coach2', char: 'coach', text: '野中コーチが黙って隣で回し始めた。速さも高さも、まるで次元が違った。', effects: {} },
+        { id: 'day_coach3', char: 'coach', text: '「今日の一本、悪くなかったな」それだけ言って、野中コーチは体育館を出て行った。', effects: {} },
+        { id: 'day_yota1', char: 'yota', text: 'コースケが「今の技、名前つけようぜ。『コースケ・スペシャル』とか」と絡んできた。', effects: {} },
+        { id: 'day_yota2', char: 'yota', text: 'コースケがディアボロを頭に乗せようとして失敗し、盛大に転がした。', effects: {} },
+        { id: 'day_yota3', char: 'yota', text: '「なあ、腹減らない？」コースケの一言で、練習は一旦休憩になった。', effects: {} },
+        { id: 'day_mikoto1', char: 'mikoto', text: '美琴先輩が採点規則の改訂点を読み上げてくれた。細かいが、ありがたい。', effects: {} },
+        { id: 'day_mikoto2', char: 'mikoto', text: '「その技、難度は高いけど加点は付きにくいのよ」美琴先輩の指摘は的確だった。', effects: {} },
+        { id: 'day_irie1', char: 'irie', text: 'イリエが「今の、めっちゃ良かった！」と手を叩いてくれた。', effects: {} },
+        { id: 'day_irie2', char: 'irie', text: 'イリエと二人、閉館ぎりぎりまで残って回し続けた。', effects: {} },
+        { id: 'day_shion1', char: 'shion', text: '志音は挨拶だけして、黙々と自分の練習に戻っていった。', effects: {} },
+        { id: 'day_shion2', char: 'shion', text: '「それ、去年の私が使ってた構成だね」志音が通りすがりに言った。', effects: {} },
+        { id: 'day_kaito1', char: 'kaito', text: '遠征帰りの魁人を見かけた。目が合ったが、何も言われなかった。', effects: {} },
+        { id: 'day_george1', char: 'george', text: 'ジョージが「客は技を見てない。お前の顔を見てるんだ」と笑った。', effects: {} },
+        { id: 'day_kazuki1', char: 'kazuki', text: 'Dr. Kazukiが回転数と滞空時間の相関を語り始めた。半分も分からなかった。', effects: {} },
+        { id: 'day_ujiji1', char: 'ujiji', text: 'うじじが体育館の隅で、見たことのない技を淡々と繰り返していた。', effects: {} },
+        { id: 'day_saito1', char: 'saito', text: 'SAITO会長が「今年の大会、エントリー増えてるよ」と教えてくれた。', effects: {} }
       ]
     },
     // v2: ライバル（総合部門に実在する対戦相手）

@@ -52,6 +52,56 @@ test('rollGuaranteed: ショート版の通常イベント枠は必ず1件返す
   assert.ok(quiet.event);
 });
 
+test('日常会話: 話者つきのquietイベントを持つ', () => {
+  const spoken = DT.DATA.EVENTS.quietEvents.filter(event => event.char);
+  const characterIds = new Set(DT.DATA.CHARACTERS.map(character => character.id));
+  assert.ok(spoken.length >= 10);
+  spoken.forEach(event => assert.ok(characterIds.has(event.char), event.char + 'はCHARACTERSに存在すること'));
+});
+
+test('日常会話: 効果を持たない', () => {
+  const spoken = DT.DATA.EVENTS.quietEvents.filter(event => event.char);
+  spoken.forEach(event => assert.deepStrictEqual(event.effects, {}, event.id + 'のeffectsは空であること'));
+});
+
+test('日常会話: 同じ話者が3回続かない', () => {
+  const s = base();
+  const speakers = [];
+  for (let i = 0; i < 20; i++) {
+    const event = DT.events.rollGuaranteed(s, () => 0.9);
+    assert.strictEqual(event.kind, 'quiet');
+    assert.ok(event.event.char);
+    speakers.push(event.event.char);
+  }
+  for (let i = 2; i < speakers.length; i++) {
+    assert.ok(!(speakers[i] === speakers[i - 1] && speakers[i] === speakers[i - 2]));
+  }
+});
+
+test('日常会話: 物語イベントの話者も記録し、直後の日常会話でかぶらない', () => {
+  // charEvents は一度きりなので抽選では絞り込まないが、話者は覚えておく必要がある。
+  // 記録しないと「コーチの物語 → コーチの日常会話」が続けて出る。
+  const s = base();
+  const first = DT.events.rollGuaranteed(s, (() => { const seq = [0, 0]; let i = 0; return () => seq[i++]; })());
+  assert.strictEqual(first.kind, 'char');
+  assert.ok(first.event.char, 'このテストは話者つきの物語イベントを前提にする');
+  assert.ok((s.recentSpeakers || []).indexOf(first.event.char) >= 0, '物語イベントの話者を記録すること');
+  // 直後の日常会話で同じ話者を避ける
+  for (let i = 0; i < 12; i++) {
+    const next = DT.events.rollGuaranteed(s, () => 0.9);
+    assert.strictEqual(next.kind, 'quiet');
+    if (i === 0) assert.notStrictEqual(next.event.char, first.event.char, '直後に同じ話者を出さないこと');
+  }
+});
+
+test('日常会話: 地の文も残る', () => {
+  const s = base();
+  s.seenCharEvents = DT.DATA.EVENTS.charEvents.map(event => event.id);
+  const event = DT.events.rollGuaranteed(s, () => 0);
+  assert.strictEqual(event.kind, 'quiet');
+  assert.ok(!event.event.char);
+});
+
 test('海外系イベントは1年目に抽選対象外、2年目から対象になる', () => {
   const s = DT.state.newCharacter(() => 0, 'highschool', 'short');
   s.metSaito = true;

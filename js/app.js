@@ -9,7 +9,7 @@
 
   // 開発用表示（DEV PARAMSパネル・大会の不振理由）は URLに ?dev を付けたときだけ表示。
   // テスターには見えないようにするための切り替え。バージョンはタイトル画面に表示。
-  const APP_VERSION = 'v0.9 short-test11';
+  const APP_VERSION = 'v0.9 short-test12';
   const DEV = QUERY_PARAMS.has('dev');
   if (DEV) document.documentElement.classList.add('dev');
   if (SHORT) document.documentElement.classList.add('short-mode');
@@ -1503,7 +1503,11 @@
       if (slot.kind === 'char') { renderEvent(slot.event, afterPreSlot); return; }
       const h = DT.events.applyHappening(state, slot.event);
       pushMsgs(h.messages);
-      showEventNotice('📓 今月のできごと', slot.event.text, h.messages.slice(1), afterPreSlot);
+      // 話者つきの日常会話なら、名前と顔を出す（顔の解決は setEventSpeaker が PNG→SVG→名前 の順で行う）
+      const speakerChar = slot.event.char
+        ? DT.DATA.CHARACTERS.find(c => c.id === slot.event.char) : null;
+      showEventNotice(speakerChar ? speakerChar.name : '📓 今月のできごと',
+        slot.event.text, h.messages.slice(1), afterPreSlot, slot.event.char);
       return;
     }
     if (DT.events.isOmikujiTurn(state.turn)) { renderOmikuji(); return; }

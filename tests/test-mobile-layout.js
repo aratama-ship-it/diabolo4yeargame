@@ -176,6 +176,11 @@ test('SHORT EVENT FLOW: 奇数月のイベントを1件に統一する', () => {
   assert.doesNotMatch(app, /function showTaiwanToilet\(/);
 });
 
+test('E3: 日常会話は名前と顔つきで出す', () => {
+  assert.match(app, /DT\.DATA\.CHARACTERS\.find\(c => c\.id === slot\.event\.char\)/);
+  assert.match(app, /showEventNotice\([\s\S]{0,300}?slot\.event\.text,[\s\S]{0,300}?afterPreSlot,\s*slot\.event\.char\)/);
+});
+
 test('PUBLIC MODE: 24ターン版を既定にして48ターン版の導線を表示しない', () => {
   assert.match(app, /const GAME_MODE = DT\.shortMode\.ID;/);
   assert.match(app, /const SHORT = true;/);
