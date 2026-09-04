@@ -306,6 +306,57 @@ test('UX1: 新設テキストは11px未満にしない', () => {
   });
 });
 
+test('UX3: 順位に前回比を出す', () => {
+  const previous = app.match(/function previousResultOf\(r\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(previous, 'previousResultOfが必要');
+  assert.match(previous[1], /x\.turn < r\.turn/);
+  assert.match(app, /'初出場'/);
+  assert.match(app, /'reveal-trend'/);
+});
+
+test('UX3: 予選行には前回比を出さない', () => {
+  assert.match(app, /if \(r\.division !== 'qualifier'\)/);
+});
+
+test('UX3: 自己ベストは過去だけと比べる', () => {
+  const best = app.match(/function bestRankBefore\(r\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(best, 'bestRankBeforeが必要');
+  assert.match(best[1], /x\.turn < r\.turn/);
+});
+
+test('UX3: 練習の成果は前→後のバーで出す', () => {
+  assert.match(app, /function growthRow\(/);
+  assert.match(app, /before \+ ' → ' \+ after/);
+  assert.match(css, /\.grow-bar\s*\{/);
+  assert.match(css, /\.grow-add\s*\{/);
+});
+
+test('UX3: 卒業のハイライトは記録追加より前の最高ptと比べる', () => {
+  assert.match(app, /function endingHighlights\(/);
+  const endingAt = app.indexOf('function showEndingWithCard(');
+  const prevBestAt = app.indexOf('const prevBest =', endingAt);
+  const addRecordAt = app.indexOf('DT.state.addRecord(', endingAt);
+  assert.ok(prevBestAt >= endingAt, 'showEndingWithCard内でprevBestを取得する');
+  assert.ok(addRecordAt > prevBestAt, 'prevBestはaddRecordより前に取得する');
+});
+
+test('UX3: 新設の演出はreduced-motionで無効化する', () => {
+  const blocks = Array.from(css.matchAll(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/g), m => m[1]);
+  const block = blocks.find(body => body.includes('.reveal-trend') && body.includes('.reveal-best') && body.includes('.grow-add'));
+  assert.ok(block, 'reduced-motionブロックにreveal-trend・reveal-best・grow-addを含める');
+});
+
+test('UX3: 新設テキストは11px未満にしない', () => {
+  ['.reveal-trend', '.reveal-best', '.eh-row', '.grow-val'].forEach(selector => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rule = css.match(new RegExp(escaped + '\\s*\\{([^}]*)\\}'));
+    assert.ok(rule, selector + 'ルールが必要');
+    const size = rule[1].match(/font-size:\s*([0-9.]+)rem/);
+    assert.ok(size, selector + 'にremのfont-sizeが必要');
+    assert.ok(Number(size[1]) >= 0.7, selector + 'は.7rem以上にする');
+  });
+});
+
 summary();
 
 test('RENAME: 大会の表示名はジャグリング全国大会に統一する', () => {

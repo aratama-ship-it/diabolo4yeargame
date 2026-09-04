@@ -9,7 +9,7 @@
 
   // 開発用表示（DEV PARAMSパネル・大会の不振理由）は URLに ?dev を付けたときだけ表示。
   // テスターには見えないようにするための切り替え。バージョンはタイトル画面に表示。
-  const APP_VERSION = 'v0.9 short-test10';
+  const APP_VERSION = 'v0.9 short-test11';
   const DEV = QUERY_PARAMS.has('dev');
   if (DEV) document.documentElement.classList.add('dev');
   if (SHORT) document.documentElement.classList.add('short-mode');
@@ -1229,6 +1229,27 @@
     return r.slot === 'routine' ? '演技構成' : statLabelById(r.slot.method);
   }
 
+  // 伸びた項目を「前 → 後」のバーで見せる。成果画面で能力の変化まで見えるようにする。
+  function growthRow(label, after, gain) {
+    const before = Math.max(0, after - gain);
+    const row = el('div', 'grow-row');
+    const head = el('div', 'grow-head');
+    head.appendChild(el('span', 'grow-label', label));
+    head.appendChild(el('span', 'grow-delta num', '+' + gain));
+    row.appendChild(head);
+    const bar = el('div', 'grow-bar');
+    const base = el('span', 'grow-base');
+    const add = el('span', 'grow-add');
+    base.style.width = Math.min(100, before) + '%';
+    add.style.width = '0%';
+    requestAnimationFrame(() => { add.style.width = Math.min(100 - Math.min(100, before), gain) + '%'; });
+    bar.appendChild(base);
+    bar.appendChild(add);
+    row.appendChild(bar);
+    row.appendChild(el('div', 'grow-val num', before + ' → ' + after));
+    return row;
+  }
+
   function renderTrainingResult(tr) {
     const screen = $('#screen-training');
     const summary = $('#training-summary');
@@ -1305,9 +1326,10 @@
     Object.keys(cellTotals).forEach(key => {
       if (cellTotals[key] === 0) return;
       const [genre, method] = key.split('.');
-      summaryNodes.push(textRow(genreLabel(genre) + '×' + statLabelById(method), '+' + cellTotals[key]));
+      summaryNodes.push(growthRow(genreLabel(genre) + '×' + statLabelById(method),
+        state.skills[genre][method], cellTotals[key]));
     });
-    if (compositionTotal !== 0) summaryNodes.push(textRow('演技構成', '+' + compositionTotal));
+    if (compositionTotal !== 0) summaryNodes.push(growthRow('演技構成', state.composition, compositionTotal));
     if (summaryNodes.length === 0) summaryNodes.push(el('div', 'cond-warn', '今月は実りが少なかった……'));
     summary.replaceChildren(...summaryNodes);
     summary.classList.remove('rv-in');
@@ -2253,6 +2275,22 @@
     show('#screen-contest');
   }
 
+  // 同じ大会・同じ部門で、今回より前のターンに行われた直近の結果。
+  function previousResultOf(r) {
+    const past = (state.results || []).filter(x =>
+      x.type === r.type && x.division === r.division && x.turn < r.turn);
+    if (past.length === 0) return null;
+    return past.reduce((a, b) => (b.turn > a.turn ? b : a));
+  }
+
+  // 同じ大会・同じ部門における、今回より前の最高順位。
+  function bestRankBefore(r) {
+    const past = (state.results || []).filter(x =>
+      x.type === r.type && x.division === r.division && x.turn < r.turn);
+    if (past.length === 0) return null;
+    return past.reduce((m, x) => Math.min(m, x.rank), Infinity);
+  }
+
   // 1部門ぶんの発表ステージ。部門名→順位ドン→スコア→内訳の順にCSSで段階表示（再描画で毎回アニメ再生）
   function renderRevealStage() {
     const r = contestReveal.ordered[contestReveal.i];
@@ -2272,6 +2310,24 @@
     num.appendChild(el('span', 'rn-side', '位'));
     rankBox.appendChild(num);
     rankBox.appendChild(el('div', 'reveal-entrants', r.entrants + '人中'));
+    if (r.division !== 'qualifier') {
+      const prev = previousResultOf(r);
+      const line = el('div', 'reveal-trend');
+      if (!prev) {
+        line.classList.add('is-first');
+        line.textContent = '初出場';
+      } else {
+        const d = prev.rank - r.rank;
+        if (d > 0) { line.classList.add('is-up'); line.textContent = '前回 ' + prev.rank + '位 → ▲' + d; }
+        else if (d < 0) { line.classList.add('is-down'); line.textContent = '前回 ' + prev.rank + '位 → ▼' + (-d); }
+        else { line.classList.add('is-same'); line.textContent = '前回と同じ ' + r.rank + '位'; }
+      }
+      rankBox.appendChild(line);
+      const best = bestRankBefore(r);
+      if (best !== null && r.rank < best) {
+        rankBox.appendChild(el('div', 'reveal-best', '🎉 自己ベスト更新（これまで ' + best + '位）'));
+      }
+    }
     if (r.rank === 1) rankBox.appendChild(el('div', 'reveal-champ', '🎉 優勝！ 🎉'));
     stage.appendChild(rankBox);
 
@@ -2359,6 +2415,31 @@
     return table;
   }
 
+  // 卒業時の3行。周回の締めとして「今回はどうだったか」を先に見せる（全戦績はその下）。
+  function endingHighlights(e, prevBest) {
+    const box = el('div', 'ending-highlights');
+    box.appendChild(el('div', 'board-label', '今回のハイライト'));
+    const ranked = (state.results || []).filter(r => r.division !== 'qualifier');
+    // ① 最高順位
+    if (ranked.length > 0) {
+      const best = ranked.reduce((a, b) => (b.rank < a.rank ? b : a));
+      box.appendChild(el('div', 'eh-row', '🏆 最高順位　' + contestLabel(best.name) + '　' + contestLabel(best.divisionLabel) + ' ' + best.rank + '位'));
+    }
+    // ② 最も伸びたジャンル（4ジャンルの平均が最も高いもの）
+    const top = DT.DATA.GENRES
+      .map(g => ({ label: g.label, avg: DT.contest.genreAvg(state, g.id) }))
+      .reduce((a, b) => (b.avg > a.avg ? b : a));
+    box.appendChild(el('div', 'eh-row', '📈 いちばん強い　' + top.label + '　平均 ' + top.avg));
+    // ③ 前回の周回との比較（初回は出さない）
+    if (prevBest !== null) {
+      const d = e.totalPoints - prevBest;
+      box.appendChild(el('div', 'eh-row' + (d > 0 ? ' is-up' : ''),
+        (d > 0 ? '🎉 自己ベスト更新　' : '🔁 これまでの最高　') + prevBest + 'pt → 今回 ' + e.totalPoints + 'pt'
+        + (d > 0 ? '（▲' + d + '）' : '')));
+    }
+    return box;
+  }
+
   function renderEnding() {
     const e = DT.ending.evaluate(state);
     const candidates = DT.cards.pickCandidates(state); // 条件達成カードを優先度順に列挙（stateクリア前に判定）
@@ -2406,12 +2487,12 @@
     let bestNote = null;
     let colResult = null; // 図鑑登録の結果（初解禁 or 重複時の枚数/自己ベスト更新）
     let alumniResult = null; // ショート版を卒業した選手の、部の卒業生名簿への登録結果
-    let cardNo = DT.state.loadRecords(undefined, GAME_MODE).length + 1; // 何人目の卒業生か（カードNo.）
+    const prev = DT.state.loadRecords(undefined, GAME_MODE);
+    const prevBest = prev.length ? Math.max.apply(null, prev.map(r => r.totalPoints || 0)) : null;
+    let cardNo = prev.length + 1; // 何人目の卒業生か（カードNo.）
     if (state.avatar) card.avatar = state.avatar;
     if (!state.recorded) {
       colResult = DT.state.addToCollection(card, cardNo, undefined, GAME_MODE); // 図鑑へ登録（初解禁ならNEW表示）
-      const prev = DT.state.loadRecords(undefined, GAME_MODE);
-      const prevBest = prev.length ? Math.max.apply(null, prev.map(r => r.totalPoints || 0)) : -1;
       DT.state.addRecord({
         date: Date.now(),
         name: state.name,
@@ -2426,7 +2507,7 @@
         gameMode: GAME_MODE
       }, undefined, GAME_MODE);
       alumniResult = DT.state.addGraduateAlumni(state, card, undefined, GAME_MODE);
-      if (state.status !== 'expelled' && e.totalPoints > prevBest) bestNote = '🎉 自己ベスト更新！';
+      if (state.status !== 'expelled' && e.totalPoints > (prevBest === null ? -1 : prevBest)) bestNote = '🎉 自己ベスト更新！';
       state.recorded = true;
       DT.state.clear(undefined, GAME_MODE);
     }
@@ -2457,6 +2538,7 @@
     rest.appendChild(buildCardActions(card, cardNo));
     if (bestNote) rest.appendChild(el('p', 'center best-note', bestNote));
     if (e.comment) rest.appendChild(el('p', 'center', e.comment));
+    rest.appendChild(endingHighlights(e, prevBest));
     if (state.results.length > 0) rest.appendChild(resultsTable(state.results));
     // ライバル戦績の表示は非表示（スコア計算では引き続き対戦相手として登場）
     const stage = el('div', 'pack-stage');
