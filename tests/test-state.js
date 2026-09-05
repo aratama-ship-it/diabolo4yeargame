@@ -274,4 +274,21 @@ test('backup: 短縮版のデータも対象に含まれる', () => {
   assert.ok(DT.state.loadCollection(dst, 'short').mx_E_showman);
 });
 
+test('prevGenreAvg: 旧セーブは null になる', () => {
+  const fresh = DT.state.newCharacter(() => 0);
+  assert.strictEqual(fresh.prevGenreAvg, null);
+  const store = memStore();
+  const old = { ...fresh };
+  delete old.prevGenreAvg;
+  DT.state.save(old, store);
+  assert.strictEqual(DT.state.load(store).prevGenreAvg, null, 'フィールドがない旧セーブ');
+  for (const invalid of [[], [10, 20], 'invalid', 42, false]) {
+    DT.state.save({ ...fresh, prevGenreAvg: invalid }, store);
+    assert.strictEqual(DT.state.load(store).prevGenreAvg, null, '配列やオブジェクト以外は捨てる');
+  }
+  const averages = { h1d: 12.3, v1d: 10, d2: 10, d3: 10 };
+  DT.state.save({ ...fresh, prevGenreAvg: averages }, store);
+  assert.deepStrictEqual(DT.state.load(store).prevGenreAvg, averages, '正しい記録は保存される');
+});
+
 summary();

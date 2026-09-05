@@ -277,8 +277,8 @@ test('UX1: 練習は能力値の表をタップして枠に入れる', () => {
   assert.match(app, /state\.lastTraining\s*=/);
 });
 
-test('UX1: 大会は部門→演技方針→参考表の順', () => {
-  assert.ok(html.indexOf('id="entry-divisions"') < html.indexOf('id="entry-status"'));
+test('UX1: 大会は部門→演技方針の順', () => {
+  assert.match(app, /replaceChildren\(emptyHint,\s*\.\.\.options,\s*policySelector\(\)\)/);
   const divisionsRule = css.match(/#entry-divisions\s*\{([^}]*)\}/);
   assert.ok(divisionsRule, '#entry-divisionsルールが必要');
   assert.doesNotMatch(divisionsRule[1], /margin-top:\s*auto/);
@@ -362,7 +362,35 @@ test('UX3: 新設テキストは11px未満にしない', () => {
   });
 });
 
-summary();
+test('Wave2: 文字の下限', () => {
+  const exceptions = new Set([
+    '.pcard-rarity', '.pcard-artlabel', '.pcard-num small', '.dev-section .dev-label', '.dev-row'
+  ]);
+  const source = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const bad = [];
+  for (const rule of source.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selectors = rule[1].trim().split(',').map(s => s.trim());
+    for (const size of rule[2].matchAll(/font-size:\s*([0-9.]+)rem/g)) {
+      if (Number(size[1]) < 0.7 && !selectors.every(s => exceptions.has(s))) {
+        bad.push(rule[1].trim() + ': ' + size[1] + 'rem');
+      }
+    }
+  }
+  assert.deepStrictEqual(bad, [], '.7rem未満を許すのは指定の5セレクタだけ');
+});
+
+test('Wave2: ホームはバー・エントリーに参考表は無い', () => {
+  const home = app.match(/function renderPlayerBoard\(\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(home, 'ホームの描画関数が必要');
+  assert.match(home[1], /board\.replaceChildren\(head,\s*cond,\s*\.\.\.warns,\s*techHead,\s*genreBars\(state\),\s*compBox\)/);
+  assert.doesNotMatch(app, /\brenderEntryStatus\b/);
+  assert.doesNotMatch(html, /\brenderEntryStatus\b/);
+  assert.doesNotMatch(html, /id="entry-status"/);
+  const detail = app.match(/function renderDetail\(\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(detail, '詳細画面の描画関数が必要');
+  assert.match(detail[1], /skillRadarGrid\(state\.skills\)/, '詳細画面はレーダーを引き続き使う');
+});
+
 
 test('RENAME: 大会の表示名はジャグリング全国大会に統一する', () => {
   // 表示に出る文字列に JJF が残っていないこと（内部ID・データキー・関数名は 'jjf' のまま残す）
@@ -382,3 +410,15 @@ test('RENAME: 改称前のセーブの旧ラベルも表示時に読み替える
   const raw = app.match(/[^(]r\.divisionLabel/g) || [];
   assert.deepStrictEqual(raw, [], 'divisionLabelはcontestLabel()を通して表示する');
 });
+
+test('Wave2: 得意技が乗るマスは補正量まで出す', () => {
+  // 印だけにすると見込みが実際とずれる（2026-09-06 実測: インテグラル持ちの1DH×高難度技は
+  // 見込み+2〜8に対し実際+10〜16だった）。量まで書いて初めて「何点伸びるか」が読める。
+  const grid = app.match(/function renderTrainGrid\(\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(grid, '練習グリッドの描画関数が必要');
+  assert.match(grid[1], /favRuleFor\(/, '得意技はルールごと引く（有無だけの判定にしない）');
+  assert.match(grid[1], /'得意技' \+ \(fr\.amount > 0 \? '\+' : ''\) \+ fr\.amount/, '補正量を表示する');
+  assert.doesNotMatch(grid[1], /'tg-fav',\s*'得意技'\s*\)/, '量の無い「得意技」だけの印に戻さない');
+});
+
+summary();

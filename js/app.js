@@ -9,7 +9,7 @@
 
   // 開発用表示（DEV PARAMSパネル・大会の不振理由）は URLに ?dev を付けたときだけ表示。
   // テスターには見えないようにするための切り替え。バージョンはタイトル画面に表示。
-  const APP_VERSION = 'v0.9 short-test12';
+  const APP_VERSION = 'v0.9 short-test13';
   const DEV = QUERY_PARAMS.has('dev');
   if (DEV) document.documentElement.classList.add('dev');
   if (SHORT) document.documentElement.classList.add('short-mode');
@@ -963,7 +963,40 @@
     $('#settings-body').replaceChildren(warn, yes, no);
   }
 
-  // 名前・やる気・ステータス（体力/学力/構成/怪我）・技術レーダーを1枠に集約した「選手ボード」
+  // 名前・やる気・ステータス（体力/学力/構成/怪我）・ジャンルバーを1枠に集約した「選手ボード」
+  // ジャンル別の習熟バー。ホームの小レーダー4枚（79×69pxで差が読めない）を置き換える。
+  // 差分＝先月の行動前(state.prevGenreAvg)からの伸び。レーダーは詳細画面に残す。
+  function genreBars(state) {
+    const box = el('div', 'gbar-box');
+    DT.DATA.GENRES.forEach(function (g) {
+      const unlocked = DT.contest.isGenreUnlocked(state, g.id);
+      const now = DT.contest.genreAvg(state, g.id);
+      const row = el('div', 'gbar' + (unlocked ? '' : ' locked'));
+      row.appendChild(el('span', 'gbar-label', unlocked ? g.label : '🔒 ' + g.label));
+      const gauge = el('div', 'gauge');
+      const fill = el('span');
+      const target = Math.max(0, Math.min(100, unlocked ? now : 0)) + '%';
+      fill.style.width = '0%';
+      requestAnimationFrame(function () { fill.style.width = target; });
+      gauge.appendChild(fill);
+      row.appendChild(gauge);
+      row.appendChild(el('span', 'gbar-val num', unlocked ? String(now) : '-'));
+      const prev = state.prevGenreAvg ? state.prevGenreAvg[g.id] : undefined;
+      const diff = (unlocked && typeof prev === 'number') ? Math.round((now - prev) * 10) / 10 : null;
+      if (!unlocked) {
+        row.appendChild(el('span', 'gbar-lock', '未解禁'));
+      } else if (diff && diff > 0) {
+        const up = el('span', 'gbar-up num', '▲' + diff);
+        up.setAttribute('aria-label', '先月から' + diff + '上がった');
+        row.appendChild(up);
+      } else {
+        row.appendChild(el('span', 'gbar-flat', '−'));
+      }
+      box.appendChild(row);
+    });
+    return box;
+  }
+
   function renderPlayerBoard() {
     const board = $('#home-board');
 
@@ -995,12 +1028,12 @@
     mood.appendChild(el('div', 'mood-label', moodLabel));
     mood.appendChild(el('div', 'mood-note', 'やる気 ' + state.motivation));
     // 覚醒中バッジ（やる気の直下に「覚醒」漢字＋残り月数）
-    if (state.awakenTurns > 0) mood.appendChild(el('div', 'mood-awaken', '🔥覚醒 あと' + state.awakenTurns + 'ヶ月'));
+    if (state.awakenTurns > 0) mood.appendChild(el('div', 'mood-awaken', '🔥覚醒 ' + state.awakenTurns + 'ヶ月'));
     cond.appendChild(mood);
     const meters = el('div', 'pb-meters');
     meters.appendChild(meterRow('体力', 100 - state.fatigue, { warn: state.fatigue >= 60 }));
     meters.appendChild(meterRow('学力', state.study));
-    // 構成（演技構成）はレーダーの下に配置。怪我（injuryRisk）はプレイヤー非表示（ロジックは継続）
+    // 構成（演技構成）はジャンルバーの下に配置。怪我（injuryRisk）はプレイヤー非表示（ロジックは継続）
     cond.appendChild(meters);
 
     // 学業・定期テストの警告
@@ -1012,7 +1045,7 @@
       warns.push(el('div', 'cond-warn', '⚠ 今月末は定期テスト！（学力' + DT.DATA.EXAMS.passLine + '以上で合格）'));
     }
 
-    // 技術（レーダーグリッド＋詳細リンク）
+    // 技術（ジャンルバー＋詳細リンク）
     const techHead = el('div', 'pb-tech-head');
     techHead.onclick = renderDetail;
     techHead.setAttribute('role', 'button');
@@ -1021,14 +1054,14 @@
     const link = el('button', 'detail-link', '技術グリッド詳細 ▸');
     techHead.appendChild(link);
 
-    // 構成（演技構成）メーターをレーダーチャートの下に配置
+    // 構成（演技構成）メーターをジャンルバーの下に配置
     const compBox = el('div', 'pb-comp');
     compBox.appendChild(meterRow('構成', state.composition));
     if (state.techniqueCard) {
       compBox.appendChild(el('div', 'notice-effect', '得意技「' + DT.events.techniqueLabel(state.techniqueCard) + '」'));
     }
 
-    board.replaceChildren(head, cond, ...warns, techHead, skillRadarGrid(state.skills), compBox);
+    board.replaceChildren(head, cond, ...warns, techHead, genreBars(state), compBox);
   }
 
   // アクションボタンのアイコン画像（絵文字の代わり）。無い種別は絵文字にフォールバック
@@ -1113,6 +1146,14 @@
 
   // ジャンル×内容の表。マスを押すと空き枠へ入る。値は現在の能力値そのもの。
   function renderTrainGrid() {
+    const favCard = state.techniqueCard
+      ? DT.DATA.TECHNIQUE_CARDS.find(c => c.id === state.techniqueCard) : null;
+    const favRules = (favCard && favCard.trainingRules) || [];
+    // 得意技が乗るマスと、その補正量。印だけにすると見込みが実際とずれる
+    // （例: インテグラル持ちの1DH×高難度技は見込み+2〜8に対し実際+10〜16）ので、必ず量まで出す。
+    // ただし見込みの数字には足さない＝1回の練習で1枠にしか乗らないため（同じマスを2枠選んでも1回だけ）。
+    const favRuleFor = (genreId, methodId) => favRules.find(r =>
+      r.method === methodId && r.genres.indexOf(genreId) >= 0) || null;
     const grid = $('#train-grid');
     const injured = state.injuredTurns > 0;
     const empty = firstEmptySlot();
@@ -1134,8 +1175,21 @@
         const cell = el('button', 'tg-cell m-' + m.id + (usable ? '' : ' locked') + (n ? ' picked' : ''));
         cell.type = 'button';
         cell.appendChild(el('span', 'tg-val num', String(state.skills[g.id][m.id])));
+        let gainText = '';
+        let favText = '';
+        if (unlocked) {
+          const pv = DT.engine.previewGain(state, m.id, state.skills[g.id][m.id]);
+          gainText = pv.min === pv.max ? '+' + pv.min : '+' + pv.min + '〜' + pv.max;
+          cell.appendChild(el('span', 'tg-gain', gainText));
+          const fr = favRuleFor(g.id, m.id);
+          if (fr) {
+            favText = '得意技' + (fr.amount > 0 ? '+' : '') + fr.amount;
+            cell.appendChild(el('span', 'tg-fav' + (fr.amount < 0 ? ' minus' : ''), favText));
+          }
+        }
         if (n) cell.appendChild(el('span', 'tg-count', '×' + n));
-        cell.setAttribute('aria-label', g.label + ' ' + methodActionLabel(m.id) + '（現在 ' + state.skills[g.id][m.id] + '）');
+        cell.setAttribute('aria-label', g.label + ' ' + methodActionLabel(m.id) + '（現在 ' + state.skills[g.id][m.id]
+          + (unlocked ? '・見込み ' + gainText : '') + (favText ? '・' + favText : '') + '）');
         if (usable) cell.onclick = () => addSlotEntry(entry); else cell.disabled = true;
         nodes.push(cell);
       });
@@ -1146,7 +1200,10 @@
     const routine = el('button', 'tg-routine' + (rUsable ? '' : ' locked') + (rn ? ' picked' : ''));
     routine.type = 'button';
     routine.appendChild(el('b', '', 'ルーチン構成'));
-    routine.appendChild(el('small', '', '演技構成 ' + state.composition + '・疲労回復' + (injured ? '　※怪我中はこれのみ' : '')));
+    const rPv = DT.engine.previewGain(state, 'routine', state.composition);
+    routine.appendChild(el('small', '', '演技構成 ' + state.composition
+      + '（' + (rPv.max === 0 ? '円熟の域・練習では伸びない' : '+' + rPv.min + '〜' + rPv.max) + '）・疲労回復'
+      + (injured ? '　※怪我中はこれのみ' : '')));
     if (rn) routine.appendChild(el('span', 'tg-count', '×' + rn));
     if (rUsable) routine.onclick = () => addSlotEntry('routine'); else routine.disabled = true;
     nodes.push(routine);
@@ -1461,6 +1518,12 @@
   const MONTH_TRANSITION_MS = 1500;
 
   function startTurn(actionId, slots) {
+    // ホームのジャンルバーに「先月からの伸び」を出すため、行動前の習熟を控える（UXレビュー B3）。
+    // 練習だけでなく勉強・休養・療養でも更新する（イベントでの伸びもこの差に含まれる）。
+    state.prevGenreAvg = DT.DATA.GENRES.reduce(function (acc, g) {
+      acc[g.id] = DT.contest.genreAvg(state, g.id);
+      return acc;
+    }, {});
     pendingMessages = [];
     pendingActionId = actionId;
     pendingSlots = slots || null;
@@ -2090,18 +2153,21 @@
     $('#sched-popup').classList.remove('hidden');
   }
 
-  // エントリー画面上部に現在の能力値（数値テーブル＋レーダー）を表示
-  function renderEntryStatus() {
-    $('#entry-status').replaceChildren(
-      el('div', 'board-label', '参考: 現在の能力値'),
-      skillTable(state.skills),
-      skillRadarGrid(state.skills),
-      meterRow('演技構成', state.composition, { wideLabel: true })
-    );
-  }
-
   // --- 演技方針（改善プラン#1）: 大会ごとに1回選び全部門共通。エントリー画面で選択 ---
   let entryPolicy = 'normal';
+  // その部門で使われる自分の値。エントリー画面で「どこに出れば勝負になるか」を部門ボタンだけで判断できるようにする。
+  // 採点の実装（contest.js）と同じ参照先: specialist=そのジャンルの習熟／overall・technical=4ジャンル平均／performance=演技構成
+  function divisionSelfValue(divisionId) {
+    const div = DT.DATA.DIVISIONS.find(d => d.id === divisionId);
+    const avgAll = () => Math.round(
+      DT.DATA.GENRES.reduce((a, g) => a + DT.contest.genreAvg(state, g.id), 0) / DT.DATA.GENRES.length * 10) / 10;
+    if (!div) return null;
+    if (div.scoring === 'overall') return { value: avgAll(), note: '4ジャンル平均' };
+    if (div.scoring === 'technical') return { value: avgAll(), note: '12項目の平均' };
+    if (div.scoring === 'performance') return { value: state.composition, note: '演技構成' };
+    return { value: DT.contest.genreAvg(state, divisionId), note: genreLabel(divisionId) + 'の習熟' };
+  }
+
   function policySelector() {
     entryPolicy = 'normal'; // 大会ごとにリセット（引きずらない）
     const wrap = el('div', 'policy-box');
@@ -2114,7 +2180,8 @@
       const p = pols[id];
       const b = el('button', 'policy-btn' + (id === entryPolicy ? ' selected' : ''));
       b.appendChild(el('span', 'policy-icon', p.icon));
-      b.appendChild(el('span', 'policy-label', p.label));
+      b.appendChild(el('span', 'policy-label', p.short || p.label));
+      b.appendChild(el('span', 'policy-sub', p.sub || ''));
       b.onclick = () => {
         entryPolicy = id;
         Object.values(btns).forEach(x => x.classList.remove('selected'));
@@ -2132,7 +2199,6 @@
 
   // --- 世界大会 出場選択 ---
   function renderWorldsEntry(wc) {
-    renderEntryStatus();
     $('#entry-title').textContent = wc.name + ' 出場権獲得！';
     $('#entry-hint').textContent = '直近1年の優勝実績により出場できます。相手は世界トップレベル（王者・魁人も出場）。' +
       (state.injuredTurns > 0 ? '　⚠ 怪我の影響でミス率+15%！' : '');
@@ -2144,14 +2210,18 @@
     const skip = el('button', '', '見送る');
     // 世界大会は練習後スロット。ランダム/状態イベントは練習前スロットで処理済みなので、見送り時はそのままターン終了。
     skip.onclick = () => { finishTurn(pendingMessages, null); };
-    $('#entry-divisions').replaceChildren(policySelector(), enter, skip);
+    const selfLine = el('div', 'entry-selfline');
+    selfLine.appendChild(el('span', '', 'あなた: 4ジャンル平均 '));
+    selfLine.appendChild(el('span', 'num', String(divisionSelfValue('overall').value)));
+    selfLine.appendChild(el('span', '', '　演技構成 '));
+    selfLine.appendChild(el('span', 'num', String(state.composition)));
+    $('#entry-divisions').replaceChildren(selfLine, policySelector(), enter, skip);
     $('#btn-entry-go').classList.add('hidden');
     show('#screen-entry');
   }
 
   // --- ジャグリング全国大会予選（9月）: 参加/不参加を選ぶ ---
   function renderJjfQualifier(jq) {
-    renderEntryStatus();
     $('#entry-title').textContent = jq.name + '（9月）';
     $('#entry-hint').textContent = 'ジャグリング全国大会に挑戦しますか？ 全パラメータがバランス良く高いほど予選を突破できます。';
     const join = el('button', 'primary', '参加する');
@@ -2174,7 +2244,12 @@
     };
     const skip = el('button', '', '参加しない');
     skip.onclick = () => finishTurn(pendingMessages, null);
-    $('#entry-divisions').replaceChildren(join, skip);
+    const selfLine = el('div', 'entry-selfline');
+    selfLine.appendChild(el('span', '', 'あなた: 4ジャンル平均 '));
+    selfLine.appendChild(el('span', 'num', String(divisionSelfValue('overall').value)));
+    selfLine.appendChild(el('span', '', '　演技構成 '));
+    selfLine.appendChild(el('span', 'num', String(state.composition)));
+    $('#entry-divisions').replaceChildren(selfLine, join, skip);
     $('#btn-entry-go').classList.add('hidden');
     show('#screen-entry');
   }
@@ -2195,7 +2270,6 @@
 
   // --- エントリー選択 ---
   function renderEntry(contest) {
-    renderEntryStatus();
     $('#btn-entry-go').classList.remove('hidden');
     const max = DT.contest.maxEntries(state.turn);
     entrySelection = [];
@@ -2221,6 +2295,13 @@
         const b = el('button', 'entry-option');
         b.appendChild(el('span', 'entry-check', '✓'));
         b.appendChild(el('span', 'entry-label', label));
+        const self = divisionSelfValue(d.id);
+        if (self) {
+          const box = el('span', 'entry-self');
+          box.appendChild(el('span', 'entry-self-val num', 'あなた ' + self.value));
+          box.appendChild(el('span', 'entry-self-note', self.note));
+          b.appendChild(box);
+        }
         b.onclick = () => {
           const idx = entrySelection.indexOf(d.id);
           if (idx >= 0) {

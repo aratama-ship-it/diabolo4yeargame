@@ -628,4 +628,24 @@ test('applyTraining: h1d習熟が20を超えた練習でv1d/d2の解禁が告知
   assert.ok(!r2.messages.join('\n').includes('解禁'), '解禁告知は一度だけ');
 });
 
+test('previewGain: 普通〜大成功の幅を返す', () => {
+  const s = base();
+  s.skills.h1d.difficulty = 30;
+  const before = JSON.stringify(s);
+  const pv = DT.engine.previewGain(s, 'difficulty', 30);
+  assert.ok(pv.min <= pv.max);
+  assert.ok(pv.min >= 1);
+  assert.strictEqual(JSON.stringify(s), before, '見込みの計算は状態を変更しない');
+  const result = DT.engine.applyTraining(s, [{ genre: 'h1d', method: 'difficulty' }], () => 0);
+  assert.strictEqual(result.results[0].tier, '大成功');
+  assert.strictEqual(result.results[0].gain, pv.max, '実際の1枠のゲインと最大見込みが一致する');
+  assert.strictEqual(s.skills.h1d.difficulty - 30, pv.max);
+});
+
+test('previewGain: 上限100を超えない', () => {
+  const s = base();
+  assert.ok(DT.engine.previewGain(s, 'difficulty', 99).max <= 1);
+  assert.deepStrictEqual(DT.engine.previewGain(s, 'difficulty', 100), { min: 0, max: 0 });
+});
+
 summary();

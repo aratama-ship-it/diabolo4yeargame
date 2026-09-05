@@ -172,6 +172,10 @@
 
   // 得意技・卒業生機能の追加前に作られたセーブも、そのまま続行できるよう不足フィールドだけを補う。
   function normalizeProgression(state) {
+    // 旧セーブには無いので null 許容。オブジェクト以外は捨てる（差分は「−」表示になるだけで壊れない）
+    if (!state.prevGenreAvg || typeof state.prevGenreAvg !== 'object' || Array.isArray(state.prevGenreAvg)) {
+      state.prevGenreAvg = null;
+    }
     if (state.techniqueCard === undefined) state.techniqueCard = null;
     if (state.techniqueCardSelectedAt === undefined) state.techniqueCardSelectedAt = null;
     if (!Array.isArray(state.activeAlumni) || state.activeAlumni.length === 0) state.activeAlumni = defaultAlumni();
@@ -240,6 +244,7 @@
       seenCharEvents: [],
       rivalRecord: DT.DATA.RIVALS.reduce((acc, r) => { acc[r.id] = { win: 0, lose: 0 }; return acc; }, {}),
       lastSlots: [],
+      prevGenreAvg: null,
       // 開始時に既に解禁済みのジャンルは告知しない（h1d常時＋経歴により解禁されるもの）
       announcedUnlocks: DT.DATA.GENRES.filter(g => DT.contest.isGenreUnlocked({ skills: skills }, g.id)).map(g => g.id)
     });

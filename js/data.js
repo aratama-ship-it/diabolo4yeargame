@@ -172,9 +172,9 @@
     // どちらかが常に支配/無意味になった(±15=攻め支配、±25=安全微優位)。ミス率を乗算にすると
     // 「操作安定度が高い(素のミス率が低い)選手ほど攻めのコストが安い」＝状態依存の賭けとして機能する
     POLICIES: {
-      safe:   { id: 'safe',   label: '安全にまとめる', icon: '🛡️', diffMult: 0.90, missMult: 0.5, hint: '難易度を落とす代わりにミスを減らす' },
-      normal: { id: 'normal', label: 'いつも通り',     icon: '🎯', diffMult: 1.0,  missMult: 1.0, hint: '練習どおりの構成で臨む' },
-      attack: { id: 'attack', label: '攻め切る',       icon: '🔥', diffMult: 1.10, missMult: 1.5, hint: '難易度を上げる代わりにミスが増える' }
+      safe:   { id: 'safe',   label: '安全にまとめる', short: '安全', sub: 'ミスを減らす', icon: '🛡️', diffMult: 0.90, missMult: 0.5, hint: '難易度を落とす代わりにミスを減らす' },
+      normal: { id: 'normal', label: 'いつも通り', short: '通常', sub: '練習どおり',     icon: '🎯', diffMult: 1.0,  missMult: 1.0, hint: '練習どおりの構成で臨む' },
+      attack: { id: 'attack', label: '攻め切る', short: '攻め', sub: '難度を上げる',       icon: '🔥', diffMult: 1.10, missMult: 1.5, hint: '難易度を上げる代わりにミスが増える' }
     },
     // v4: モブ対戦相手の命名プール（日本人選手風）。runDivisionでrngを消費せず決定的に割り当てる
     OPPONENT_NAMES: [

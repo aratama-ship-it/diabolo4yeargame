@@ -167,6 +167,17 @@
     return { gain, timingNote, extraFatigue };
   }
 
+  // 練習グリッドの「見込み」表示用（UXレビュー C2/C3）。実際の加算と同じ computeSlotGain を呼ぶので、
+  // 表示式を app 側へ書き写さずに済む。副作用なし・rngを使わない・失敗(+0)は幅に含めない
+  // （失敗が起きるのは新技開発だけで、表には注記で出す）。
+  // key: 'difficulty' | 'novelty' | 'control' | 'routine'
+  function previewGain(state, key, growthValue) {
+    const base = key === 'routine' ? DT.DATA.SLOTS.routineGain : DT.DATA.SLOTS.gridGain;
+    const room = Math.max(0, 100 - growthValue); // 100が上限なので、残り幅を超える見込みは出さない
+    const at = tier => Math.min(room, computeSlotGain(state, key, base, growthValue, tier).gain);
+    return { min: at('普通'), max: at('大成功') };
+  }
+
   // 疲労は枠ごとに逐次state.fatigueへ加算する（後続枠のrollTier/growthMultは前枠の結果を反映した状態で評価される）
   // rng消費: 1枠につきrollTier用に1回のみ
   function applyTraining(state, slots, rng) {
@@ -339,5 +350,5 @@
     return year + '年生 ' + month + '月';
   }
 
-  DT.engine = { outcomeProbs, rollTier, growthMult, compositionGrowthMult, applyAction, applyTraining, rollInjury, endTurn, turnLabel, isMeetupMonth, TIER_MULT, motivationLabel };
+  DT.engine = { outcomeProbs, rollTier, growthMult, compositionGrowthMult, applyAction, applyTraining, rollInjury, endTurn, turnLabel, isMeetupMonth, TIER_MULT, motivationLabel, previewGain };
 })(typeof window !== 'undefined' ? window : globalThis);

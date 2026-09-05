@@ -7,18 +7,18 @@
 <!-- PWA: ホーム画面に追加するとスタンドアロン起動になり、iOSのストレージ自動削除の対象外になる
      ＝図鑑・記録が消えにくくなる。Service Worker(sw.js)はネットワーク優先で、
      オンライン時は常に最新を返すため `?v=` のキャッシュ破棄運用と両立する（オフライン時のみキャッシュ配信） -->
-<link rel="manifest" href="manifest.json?v=20260904a">
+<link rel="manifest" href="manifest.json?v=20260906a">
 <meta name="theme-color" content="#fff8ec">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="４８ヶ月のディアボロ">
-<link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png?v=20260904a">
-<link rel="icon" href="assets/pwa/icon-192.png?v=20260904a" type="image/png">
+<link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png?v=20260906a">
+<link rel="icon" href="assets/pwa/icon-192.png?v=20260906a" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20260904a">
+<link rel="stylesheet" href="css/style.css?v=20260906a">
 </head>
 <body>
 <div id="app">
@@ -101,6 +101,7 @@
       </div>
       <div class="card slot-board">
         <div class="board-label">表をタップすると空き枠に入る（同じ内容は2枠まで）</div>
+        <div class="train-note">数字は今の能力値／下は今月の伸びの見込み（普通〜大成功）。新技開発だけ失敗＝+0あり。得意技の補正は1回の練習で1枠にだけ乗る</div>
         <div class="train-grid" id="train-grid"></div>
       </div>
       <button class="go-btn" id="btn-training-go">この内容で練習する！</button>
@@ -141,7 +142,6 @@
       <h2 id="entry-title"></h2>
       <p class="subtitle" id="entry-hint"></p>
       <div id="entry-divisions"></div>
-      <div class="card slot-board" id="entry-status"></div>
       <div class="cta-wrap"><button id="btn-entry-go" class="primary">この内容でエントリー</button></div>
     </section>
 
@@ -391,23 +391,24 @@
   </div>
 </aside>
 
-<script src="js/data.js?v=20260904a"></script>
-<script src="js/short-mode.js?v=20260904a"></script>
-<script src="js/state.js?v=20260904a"></script>
-<script src="js/engine.js?v=20260904a"></script>
-<script src="js/contest.js?v=20260904a"></script>
-<script src="js/events.js?v=20260904a"></script>
-<script src="js/ending.js?v=20260904a"></script>
-<script src="js/cards.js?v=20260904a"></script>
-<script src="js/radar.js?v=20260904a"></script>
-<script src="js/avatar.js?v=20260904a"></script>
-<script src="js/app.js?v=20260904a"></script>
+<script src="js/data.js?v=20260906a"></script>
+<script src="js/short-mode.js?v=20260906a"></script>
+<script src="js/state.js?v=20260906a"></script>
+<script src="js/engine.js?v=20260906a"></script>
+<script src="js/contest.js?v=20260906a"></script>
+<script src="js/events.js?v=20260906a"></script>
+<script src="js/ending.js?v=20260906a"></script>
+<script src="js/cards.js?v=20260906a"></script>
+<script src="js/radar.js?v=20260906a"></script>
+<script src="js/avatar.js?v=20260906a"></script>
+<script src="js/app.js?v=20260906a"></script>
 <script>
   // Service Worker登録（PWA: オフライン起動＋インストール可能に）。
   // file://で直接開いた場合やSW非対応環境では何もしない。失敗してもゲーム本体には影響させない。
   if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js?v=20260904a').catch(function () { /* 登録失敗は無視 */ });
+      // 更新ごとにスクリプトURLを変えず、古いSWが残って更新が遅れるのを避けるため登録URLを固定する。
+      navigator.serviceWorker.register('sw.js').catch(function () { /* 登録失敗は無視 */ });
     });
   }
 </script>
