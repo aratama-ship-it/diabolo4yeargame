@@ -1,0 +1,45 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UIアイコン一覧 — ４８ヶ月のディアボロ</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#2b3a67;--ink-soft:#64719c;--cream:#fff8ec;--paper:#fff;--sun:#ffd166;}
+body{margin:0;padding:24px;background:var(--cream);color:var(--ink);font-family:'M PLUS Rounded 1c',sans-serif;font-weight:700}
+h1{font-size:1.1rem;margin:0 0 4px}
+p{font-size:.82rem;color:var(--ink-soft);margin:0 0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;max-width:760px}
+.cell{background:var(--paper);border:3px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink);
+  padding:12px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.cell .ui-icon{width:30px;height:30px}
+.cell b{font-size:.7rem;font-weight:800}
+.row{display:flex;gap:8px;margin:22px 0 0;max-width:420px}
+.nav{flex:1;border:3px solid var(--ink);border-radius:14px;background:var(--paper);box-shadow:0 3px 0 var(--ink);
+  padding:6px 4px 4px;font-size:.7rem;font-weight:800;color:var(--ink-soft);
+  display:flex;flex-direction:column;align-items:center;gap:1px}
+.nav.active{background:var(--sun);color:var(--ink)}
+.nav .ui-icon{width:19px;height:19px}
+.sizes{display:flex;align-items:flex-end;gap:14px;margin-top:22px}
+.sizes span{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.65rem;color:var(--ink-soft)}
+</style></head><body>
+<h1>UIアイコン（インク線・24×24・線幅2）</h1>
+<p>ナビ・モーダル見出し・予定一覧で絵文字と置き換えるもの。色は currentColor で親から継ぐ。</p>
+<div class="grid" id="grid"></div>
+<div class="row" id="nav"></div>
+<div class="sizes" id="sizes"></div>
+<script src="../../../js/icons.js"></script>
+<script>
+const LABEL={home:'ホーム',chart:'詳細',gear:'設定',medal:'記録/ポイント',book:'図鑑/ログ',calendar:'今後の予定',
+  flower:'卒業生',trophy:'大会',globe:'世界大会',pencil:'定期テスト',diabolo:'全国大会予選',people:'練習会',chat:'ログ帯'};
+const grid=document.getElementById('grid');
+DT.icons.names.forEach(n=>{const c=document.createElement('div');c.className='cell';
+  c.appendChild(DT.icons.svg(n));const b=document.createElement('b');b.textContent=LABEL[n]||n;c.appendChild(b);
+  const s=document.createElement('b');s.style.color='var(--ink-soft)';s.style.fontSize='.62rem';s.textContent=n;c.appendChild(s);
+  grid.appendChild(c);});
+const nav=document.getElementById('nav');
+[['home','ホーム',true],['chart','詳細',false],['gear','設定',false]].forEach(([n,t,a])=>{
+  const b=document.createElement('button');b.className='nav'+(a?' active':'');
+  b.appendChild(DT.icons.svg(n));const s=document.createElement('span');s.textContent=t;b.appendChild(s);nav.appendChild(b);});
+const sizes=document.getElementById('sizes');
+[14,17,19,24,30,44].forEach(px=>{const w=document.createElement('span');const i=DT.icons.svg('diabolo');
+  i.style.width=px+'px';i.style.height=px+'px';w.appendChild(i);const l=document.createElement('i');l.textContent=px+'px';w.appendChild(l);sizes.appendChild(w);});
+</script></body></html>

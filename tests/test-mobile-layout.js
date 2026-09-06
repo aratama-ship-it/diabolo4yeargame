@@ -206,7 +206,7 @@ test('NAVIGATION: 卒業生名簿はタイトルではなく新入生スカウ�
   const create = html.match(/<section id="screen-create"[\s\S]*?<\/section>/);
   assert.ok(title && create);
   assert.doesNotMatch(title[0], /id="btn-alumni"/);
-  assert.match(create[0], /id="btn-alumni"[^>]*>🌸 登場する卒業生を設定/);
+  assert.match(create[0], /id="btn-alumni"[^>]*data-icon="flower"[^>]*>登場する卒業生を設定/);
   assert.match(app, /function renderCreateAlumniButton\(\)[\s\S]*?requiredAlumniCount\(profile\)[\s\S]*?profile\.selectedIds\.length/);
   assert.match(app, /!?\$\('#screen-create'\)\.classList\.contains\('hidden'\)[\s\S]*?candidate\.activeAlumni\s*=\s*DT\.state\.loadActiveAlumni/);
 });
@@ -459,6 +459,75 @@ test('見立て: 下寄せは部門選択に持ち込まない', () => {
     '予選・世界大会から戻っても下寄せを残さない');
   assert.match(css, /#entry-divisions\.gate-layout\s*\{\s*flex:\s*1;/);
   assert.match(css, /#entry-divisions\.gate-layout \.gate-choices\s*\{\s*margin-top:\s*auto;/);
+});
+
+test('アイコン: UIの器から絵文字が消えている', () => {
+  const navLines = html.split('\n').filter(line => /class="nav-btn"/.test(line));
+  const titles = ['今後の予定', 'ポイント履歴', 'これまでの記録', '卒業生名簿', 'カード図鑑', '設定', 'これまでの記録ログ'];
+  // 顔作成・選手登録など仕様の置換表にない見出しは対象外。
+  const modalLines = titles.map(title => {
+    const lines = html.split('\n').filter(line => line.includes('class="modal-title"') && line.includes(title + '</span>'));
+    assert.strictEqual(lines.length, 1, title);
+    return lines[0];
+  });
+  const buttonLines = ['btn-records', 'btn-zukan', 'btn-alumni'].map(id => {
+    const lines = html.split('\n').filter(line => line.includes('id="' + id + '"'));
+    assert.strictEqual(lines.length, 1, id);
+    return lines[0];
+  });
+  assert.strictEqual(navLines.length, 3);
+  assert.strictEqual(modalLines.length, 7);
+  [...navLines, ...modalLines, ...buttonLines].forEach(line => {
+    assert.doesNotMatch(line, /\p{Extended_Pictographic}|[\uFE0F\u20E3]/u, line);
+    assert.match(line, /data-icon="[a-z]+"/, line);
+  });
+  const iconsAt = html.indexOf('js/icons.js?v=');
+  const appAt = html.indexOf('js/app.js?v=');
+  assert.ok(iconsAt >= 0 && appAt > iconsAt, 'icons.jsをapp.jsより先に読み込む');
+  assert.ok(html.indexOf('js/avatar.js?v=') < iconsAt, 'avatar.jsの次にicons.jsを読み込む');
+  const alumni = app.match(/function renderCreateAlumniButton\(\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(alumni);
+  assert.doesNotMatch(alumni[1], /🌸/);
+  const labelAt = alumni[1].indexOf('button.textContent =');
+  const iconAt = alumni[1].indexOf("DT.icons.prepend(button, 'flower')");
+  assert.ok(labelAt >= 0 && iconAt > labelAt, '人数更新後にも卒業生アイコンを戻す');
+});
+
+test('アイコン: data-icon の名前は実在する', () => {
+  const icons = readFileSync(require.resolve('../js/icons.js'), 'utf8');
+  const paths = icons.match(/const PATHS\s*=\s*\{([\s\S]*?)\n  \};/);
+  assert.ok(paths, 'PATHSの定義が必要');
+  const names = new Set(Array.from(paths[1].matchAll(/^\s*([a-z]+):/gm), m => m[1]));
+  assert.ok(names.size > 0, 'PATHSから名前を取得する');
+  const staticNames = Array.from(html.matchAll(/data-icon="([^"]+)"/g), m => m[1]);
+  // 件数は下限で見る。アイコンを足すたびにテストが落ちるのは意味がない（見たいのは
+  // 「配線が残っていること」と「名前が実在すること」）
+  assert.ok(staticNames.length >= 13, 'data-iconの配線が減っていないこと: ' + staticNames.length);
+  // 第1引数の $() などに含まれる括弧も許容して、リテラルの第2引数を拾う。
+  const prependNames = Array.from(app.matchAll(/DT\.icons\.prepend\([^;\n]*?,\s*'([^']+)'/g), m => m[1]);
+  assert.ok(prependNames.length >= 3, '動的な差し込みが減っていないこと: ' + prependNames.length);
+  const future = app.match(/function futureEvents\(\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(future, 'futureEventsが必要');
+  const eventNames = Array.from(future[1].matchAll(/icon:\s*'([^']+)'/g), m => m[1]);
+  assert.strictEqual(eventNames.length, 6, '予定一覧の6種はこの数のまま');
+  [...staticNames, ...prependNames, ...eventNames].forEach(name => {
+    assert.ok(names.has(name), name + 'はPATHSに存在すること');
+  });
+});
+
+test('初回案内: タイトルの説明文は無い', () => {
+  assert.doesNotMatch(html, /title-manual/);
+  assert.doesNotMatch(app, /title-manual/);
+  assert.doesNotMatch(css, /title-manual/);
+  ['home', 'train', 'result'].forEach(id => {
+    assert.match(app, new RegExp("coachTip\\('" + id + "',"));
+  });
+  const coach = app.match(/function coachTip\(id, text\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(coach, 'coachTipが必要');
+  assert.match(coach[1], /if \(state\.turn > 2 \|\| DT\.state\.hintSeen\(id\)\) return null/);
+  assert.match(coach[1], /DT\.state\.markHint\(id\)/);
+  assert.match(coach[1], /close\.onclick = \(\) => tip\.remove\(\)/);
+  assert.match(coach[1], /tip\.appendChild\(close\)/);
 });
 
 summary();

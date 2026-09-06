@@ -291,4 +291,28 @@ test('prevGenreAvg: 旧セーブは null になる', () => {
   assert.deepStrictEqual(DT.state.load(store).prevGenreAvg, averages, '正しい記録は保存される');
 });
 
+test('初回案内: 既読は保存され、2度目は出ない', () => {
+  const storage = memStore();
+  assert.strictEqual(DT.state.hintSeen('home', storage), false);
+  assert.deepStrictEqual(DT.state.markHint('home', storage), ['home']);
+  assert.strictEqual(DT.state.hintSeen('home', storage), true);
+  assert.deepStrictEqual(JSON.parse(storage.getItem(DT.state.HINTS_KEY)), ['home']);
+  assert.deepStrictEqual(DT.state.markHint('home', storage), ['home']);
+  assert.deepStrictEqual(DT.state.loadHints(storage), ['home']);
+  DT.state.clear(storage);
+  assert.strictEqual(DT.state.hintSeen('home', storage), true, '周回しても既読を残す');
+  for (const broken of ['{', '3', 'null', '{}']) {
+    storage.setItem(DT.state.HINTS_KEY, broken);
+    assert.deepStrictEqual(DT.state.loadHints(storage), [], broken);
+  }
+});
+
+test('初回案内: バックアップの対象に入れない', () => {
+  assert.strictEqual(DT.state.HINTS_KEY, 'diabolo-trainer-hints-v1');
+  assert.ok(!DT.state.BACKUP_KEYS.includes(DT.state.HINTS_KEY));
+  const storage = memStore();
+  DT.state.markHint('home', storage);
+  assert.ok(!Object.hasOwn(DT.state.exportBackup(storage).data, DT.state.HINTS_KEY));
+});
+
 summary();

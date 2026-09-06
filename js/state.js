@@ -274,6 +274,25 @@
     (storage || global.localStorage).removeItem(gameMode === 'short' ? SHORT_SAVE_KEY : SAVE_KEY);
   }
 
+  // 初回だけ出す案内の既読。**周回をまたいで残す**ので state（セーブ）ではなく専用キーに置く。
+  // BACKUP_KEYS には入れない＝進行データではなく、この端末の見た目の状態だから。
+  const HINTS_KEY = 'diabolo-trainer-hints-v1';
+  function loadHints(storage) {
+    try {
+      const raw = (storage || global.localStorage).getItem(HINTS_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function hintSeen(id, storage) { return loadHints(storage).indexOf(id) >= 0; }
+  function markHint(id, storage) {
+    const list = loadHints(storage);
+    if (list.indexOf(id) >= 0) return list;
+    list.push(id);
+    (storage || global.localStorage).setItem(HINTS_KEY, JSON.stringify(list));
+    return list;
+  }
+
   // --- 個人記録（ローカル）: クリアした周回の成績を localStorage に蓄積し、通算ポイント降順で保持 ---
   const RECORDS_KEY = 'diabolo-trainer-records-v1';
   const SHORT_RECORDS_KEY = 'diabolo-trainer-short-records-v1';
@@ -409,6 +428,7 @@
     newCharacter, save, load, clear, SAVE_KEY, SHORT_SAVE_KEY,
     normalizeProgression,
     loadRecords, addRecord, RECORDS_KEY, SHORT_RECORDS_KEY,
+    loadHints, hintSeen, markHint, HINTS_KEY,
     loadCollection, addToCollection, COLLECTION_KEY, SHORT_COLLECTION_KEY,
     loadAlumniProfile, loadActiveAlumni, saveAlumniSelection, addGraduateAlumni,
     requiredAlumniCount,

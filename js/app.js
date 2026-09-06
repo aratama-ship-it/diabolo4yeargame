@@ -9,7 +9,7 @@
 
   // 開発用表示（DEV PARAMSパネル・大会の不振理由）は URLに ?dev を付けたときだけ表示。
   // テスターには見えないようにするための切り替え。バージョンはタイトル画面に表示。
-  const APP_VERSION = 'v0.9 short-test14';
+  const APP_VERSION = 'v0.9 short-test15';
   const DEV = QUERY_PARAMS.has('dev');
   if (DEV) document.documentElement.classList.add('dev');
   if (SHORT) document.documentElement.classList.add('short-mode');
@@ -296,7 +296,8 @@
   function openRadar(genreId) {
     const unlocked = DT.contest.isGenreUnlocked(state, genreId);
     const cell = state.skills[genreId];
-    $('#radar-title').textContent = '📊 ' + genreLabel(genreId) + '（' + (GENRE_FULL[genreId] || '') + '）';
+    $('#radar-title').textContent = genreLabel(genreId) + '（' + (GENRE_FULL[genreId] || '') + '）';
+    DT.icons.prepend($('#radar-title'), 'chart');
 
     $('#radar-big').replaceChildren(buildRadarSvg(genreId, cell, unlocked));
 
@@ -382,8 +383,8 @@
     $('#btn-continue').disabled = !DT.state.load(undefined, GAME_MODE);
     $('#title-main').textContent = '４８ヶ月のディアボロ';
     $('#title-subtitle').textContent = '〜2ヶ月ずつ、大学4年間を駆け抜けろ〜';
-    $('#title-manual').textContent = '1ターンで2ヶ月進む全24ターン。練習・勉強・休養を選び、得意分野を育てて大会へ挑みます。練習はジャンルと内容を組み合わせて3枠決めます。疲労がたまると失敗や怪我のリスクが上がるので注意。育てた選手は卒業時にカードとして残ります。';
     $('#app-version').textContent = APP_VERSION + (DEV ? '（DEV表示ON）' : '');
+    DT.icons.applyStatic();   // data-icon を持つ要素へインク線SVGを差し込む（絵文字の置き換え）
     show('#screen-title');
   }
 
@@ -440,7 +441,8 @@
     if (!SHORT) return;
     const profile = DT.state.loadAlumniProfile(undefined, GAME_MODE);
     const required = DT.state.requiredAlumniCount(profile);
-    button.textContent = '🌸 登場する卒業生を設定（' + profile.selectedIds.length + ' / ' + required + '人）';
+    button.textContent = '登場する卒業生を設定（' + profile.selectedIds.length + ' / ' + required + '人）';
+    DT.icons.prepend(button, 'flower');
   }
 
   $('#btn-reroll').onclick = () => renderCreate(newCandidate());
@@ -592,10 +594,14 @@
       logs.forEach(l => body.push(el('div', '', l)));
     } else {
       log.classList.remove('multi');
-      body.push(el('div', '', SHORT ? '💬 偶数月の行動を決めよう。次の奇数月はイベント！' : '💬 今月はどうする？'));
+      const prompt = el('div', 'log-prompt', SHORT ? '偶数月の行動を決めよう。次の奇数月はイベント！' : '今月はどうする？');
+      DT.icons.prepend(prompt, 'chat');
+      body.push(prompt);
     }
     // ログ帯タップで記録ログを開ける（後から見返せる）
-    body.push(el('div', 'log-more', '📖 これまでの記録ログ ▸'));
+    const more = el('div', 'log-more', 'これまでの記録ログ ▸');
+    DT.icons.prepend(more, 'book');
+    body.push(more);
     log.replaceChildren(...body);
     log.setAttribute('role', 'button');
     log.title = 'タップで記録ログ';
@@ -626,7 +632,9 @@
     box.appendChild(head);
     events.forEach(e => {
       const row = el('div', 'ne-row ' + e.cls);
-      row.appendChild(el('span', 'ne-icon', e.icon));
+      const ic = el('span', 'ne-icon');
+      DT.icons.prepend(ic, e.icon);
+      row.appendChild(ic);
       row.appendChild(el('span', 'ne-name', e.name));
       const away = e.turn - state.turn;
       row.appendChild(el('span', 'ne-count', away === 0 ? '今月' : 'あと' + away + 'ヶ月'));
@@ -641,13 +649,13 @@
     const nextContestTurn = (nextContestFrom(state.turn) || {}).turn;
     for (let t = state.turn; t <= DT.DATA.TOTAL_TURNS; t++) {
       const c = DT.DATA.CONTESTS.find(x => x.turn === t);
-      if (c) out.push({ turn: t, icon: '🏆', name: c.name, sub: CONTEST_DESC[c.type] || '大会', cls: 'contest', isNext: t === nextContestTurn });
+      if (c) out.push({ turn: t, icon: 'trophy', name: c.name, sub: CONTEST_DESC[c.type] || '大会', cls: 'contest', isNext: t === nextContestTurn });
       const w = DT.contest.worldsContestForTurn(t);
-      if (w) out.push({ turn: t, icon: '🌍', name: w.name, sub: '前年に優勝で出場権', cls: 'worlds', isNext: false });
-      if (DT.DATA.EXAMS.turns.includes(t)) out.push({ turn: t, icon: '📝', name: '定期テスト', sub: '学力' + DT.DATA.EXAMS.passLine + '未満で補習2ヶ月', cls: 'exam', isNext: false });
-      if (DT.DATA.JJF.qualifierTurns.includes(t)) out.push({ turn: t, icon: '🤹', name: 'ジャグリング全国大会予選', sub: '参加は任意・バランス総合力で突破', cls: 'jjf', isNext: false });
-      if (DT.DATA.JJF.finalTurns.includes(t)) out.push({ turn: t, icon: '🏅', name: 'ジャグリング全国大会決勝', sub: '予選突破者のみ・10人で争う', cls: 'jjf', isNext: false });
-      if (DT.engine.isMeetupMonth(t)) out.push({ turn: t, icon: '🤝', name: '練習会', sub: 'ルーチン構成・新技が伸びやすい', cls: 'meetup', isNext: false });
+      if (w) out.push({ turn: t, icon: 'globe', name: w.name, sub: '前年に優勝で出場権', cls: 'worlds', isNext: false });
+      if (DT.DATA.EXAMS.turns.includes(t)) out.push({ turn: t, icon: 'pencil', name: '定期テスト', sub: '学力' + DT.DATA.EXAMS.passLine + '未満で補習2ヶ月', cls: 'exam', isNext: false });
+      if (DT.DATA.JJF.qualifierTurns.includes(t)) out.push({ turn: t, icon: 'diabolo', name: 'ジャグリング全国大会予選', sub: '参加は任意・バランス総合力で突破', cls: 'jjf', isNext: false });
+      if (DT.DATA.JJF.finalTurns.includes(t)) out.push({ turn: t, icon: 'medal', name: 'ジャグリング全国大会決勝', sub: '予選突破者のみ・10人で争う', cls: 'jjf', isNext: false });
+      if (DT.engine.isMeetupMonth(t)) out.push({ turn: t, icon: 'people', name: '練習会', sub: 'ルーチン構成・新技が伸びやすい', cls: 'meetup', isNext: false });
     }
     return out;
   }
@@ -655,7 +663,9 @@
   function openSchedule() {
     const rows = futureEvents().map(e => {
       const row = el('div', 'event-row ' + e.cls + (e.isNext ? ' next' : ''));
-      row.appendChild(el('span', 'event-icon', e.icon));
+      const ic = el('span', 'event-icon');
+      DT.icons.prepend(ic, e.icon);
+      row.appendChild(ic);
       const meta = el('div', 'event-meta');
       const away = e.turn - state.turn;
       meta.appendChild(el('div', 'event-when', DT.engine.turnLabel(e.turn) + '（' + (away === 0 ? '今月' : 'あと' + away + 'ヶ月') + '）'));
@@ -1096,9 +1106,24 @@
     return row;
   }
 
+  // 初回だけ出す一言。タイトルの115字を読ませる代わりに、その画面でその1行だけ出す。
+  // 既に進んでいるセーブには出さない（turn<=2）。既読は周回をまたいで残るので2周目からは出ない。
+  function coachTip(id, text) {
+    if (state.turn > 2 || DT.state.hintSeen(id)) return null;
+    const tip = el('div', 'coach-tip');
+    tip.appendChild(el('span', 'coach-tip-text', text));
+    const close = el('button', 'coach-tip-x', '×');
+    close.type = 'button';
+    close.setAttribute('aria-label', '案内を閉じる');
+    close.onclick = () => tip.remove();
+    tip.appendChild(close);
+    DT.state.markHint(id);
+    return tip;
+  }
+
   function renderHomeActions() {
     const box = $('#home-actions');
-    const study = bigAction('study', '📖', '勉 強', SHORT ? '学力アップ・伸び2倍' : '学力アップ', () => onAction('study'), true);
+    const study = bigAction('study', '📖', '勉 強', SHORT ? '学力アップ×2' : '学力アップ', () => onAction('study'), true);
     if (state.injuredTurns > 0) {
       // 怪我中: 療養のほか、勉強と「ルーチン構成のみ1枠」の練習が可能
       box.replaceChildren(
@@ -1106,19 +1131,19 @@
         bigAction('train', '🥢', '練 習', 'ルーチン構成のみ（怪我のため軽め）', openTrainMenu),
         actionRow(study, bigAction('injured', '🩹', '療 養', '怪我を治す', () => onAction('injured'), true))
       );
-      return;
-    }
-    if (state.banTurns > 0) {
+    } else if (state.banTurns > 0) {
       box.replaceChildren(
         el('div', 'cond-warn', '⚠ 補習中！練習禁止（残り' + state.banTurns + 'ヶ月）'),
         actionRow(study, bigAction('rest', '🛌', '休 養', '疲労・怪我を回復', () => onAction('rest'), true))
       );
-      return;
+    } else {
+      box.replaceChildren(
+        bigAction('train', '🥢', '練 習', SHORT ? '3枠を組む・能力の伸び2倍' : '3枠のメニューを組んで技術アップ', openTrainMenu),
+        actionRow(study, bigAction('rest', '🛌', '休 養', '疲労・怪我を回復', () => onAction('rest'), true))
+      );
     }
-    box.replaceChildren(
-      bigAction('train', '🥢', '練 習', SHORT ? '3枠を組む・能力の伸び2倍' : '3枠のメニューを組んで技術アップ', openTrainMenu),
-      actionRow(study, bigAction('rest', '🛌', '休 養', '疲労・怪我を回復', () => onAction('rest'), true))
-    );
+    const tip = coachTip('home', 'まず「練習」を選んでみよう');
+    if (tip) box.insertBefore(tip, box.firstChild);
   }
 
   // --- 練習メニュー ---
@@ -1243,6 +1268,8 @@
     $('#slot-row').replaceChildren(...slotsUI.map(slotButton));
     justSetSlot = -1;
     renderTrainGrid();
+    const tTip = coachTip('train', '表のマスを3つ押して、下のボタンで実行');
+    $('#trainmenu-tip').replaceChildren(...(tTip ? [tTip] : []));
 
     const lastTraining = state.lastTraining;
     const canRepeat = Array.isArray(lastTraining) && lastTraining.length === 3
@@ -1310,6 +1337,8 @@
   function renderTrainingResult(tr) {
     const screen = $('#screen-training');
     const summary = $('#training-summary');
+    const rTip = coachTip('result', '「大成功」が出ると伸びが2倍になる');
+    $('#training-tip').replaceChildren(...(rTip ? [rTip] : []));
     const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     const timers = new Set();
     const frames = new Set();

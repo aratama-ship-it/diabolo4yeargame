@@ -13,7 +13,7 @@
  */
 'use strict';
 
-const CACHE_VERSION = 'v20260907a';
+const CACHE_VERSION = 'v20260908a';
 const CACHE_NAME = 'diabolo4yeargame-' + CACHE_VERSION;
 
 // オフライン初回起動に最低限必要なもの。取得に失敗しても install は成功させる（配信構成の差異に強くする）
@@ -31,6 +31,8 @@ const CORE_ASSETS = [
   './js/ending.js',
   './js/cards.js',
   './js/radar.js',
+  './js/avatar.js',
+  './js/icons.js',
   './js/app.js',
   './assets/pwa/icon-192.png'
 ];
