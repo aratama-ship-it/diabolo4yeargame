@@ -9,7 +9,7 @@
 
   // 開発用表示（DEV PARAMSパネル・大会の不振理由）は URLに ?dev を付けたときだけ表示。
   // テスターには見えないようにするための切り替え。バージョンはタイトル画面に表示。
-  const APP_VERSION = 'v0.9 short-test13';
+  const APP_VERSION = 'v0.9 short-test14';
   const DEV = QUERY_PARAMS.has('dev');
   if (DEV) document.documentElement.classList.add('dev');
   if (SHORT) document.documentElement.classList.add('short-mode');
@@ -2197,6 +2197,50 @@
     return wrap;
   }
 
+  // 「出る／出ない」を決めるための見立てカード。空白を埋めるためではなく、
+  // 判断に要る数字（突破条件・相手の格・勝ったとき負けたとき）をこの画面に出すために置く。
+  const GATE_VERDICT = {
+    jjf: { sure: '突破できる', half: '五分（およそ50%）', none: 'いまの力では届かない' },
+    worlds: { sure: '勝負になる', half: '食らいつける', none: '胸を借りる' }
+  };
+  function gateRow(key, value, need) {
+    const row = el('div', 'gate-row');
+    row.appendChild(el('span', 'gate-k', key));
+    row.appendChild(el('span', 'gate-v num', String(value)));
+    row.appendChild(el('span', 'gate-need', need));
+    return row;
+  }
+  // 目盛り付きゲージ。ticks は 0〜100 の位置に越えるべきラインを引く。
+  // 塗りは既存の .gauge > span、目盛りは i にしてセレクタを分ける。
+  function gateGauge(value, ticks) {
+    const g = el('div', 'gauge gate-gauge');
+    const fill = el('span');
+    fill.style.width = '0%';
+    requestAnimationFrame(() => { fill.style.width = Math.max(0, Math.min(100, value)) + '%'; });
+    g.appendChild(fill);
+    (ticks || []).forEach(t => {
+      const m = el('i', 'gate-tick');
+      m.style.left = Math.max(0, Math.min(100, t)) + '%';
+      g.appendChild(m);
+    });
+    return g;
+  }
+  function gateBar(label, value, ticks, cls) {
+    const row = el('div', 'gate-bar' + (cls ? ' ' + cls : ''));
+    row.appendChild(el('span', 'gate-bl', label));
+    row.appendChild(gateGauge(value, ticks));
+    row.appendChild(el('span', 'gate-bv num', String(value)));
+    return row;
+  }
+  function gateBox(kind, title, tier, rows, note) {
+    const box = el('div', 'card slot-board gate-box');
+    box.appendChild(el('div', 'board-label', title));
+    box.appendChild(el('div', 'gate-verdict is-' + tier, GATE_VERDICT[kind][tier]));
+    rows.forEach(r => box.appendChild(r));
+    box.appendChild(el('div', 'gate-note', note));
+    return box;
+  }
+
   // --- 世界大会 出場選択 ---
   function renderWorldsEntry(wc) {
     $('#entry-title').textContent = wc.name + ' 出場権獲得！';
@@ -2210,12 +2254,17 @@
     const skip = el('button', '', '見送る');
     // 世界大会は練習後スロット。ランダム/状態イベントは練習前スロットで処理済みなので、見送り時はそのままターン終了。
     skip.onclick = () => { finishTurn(pendingMessages, null); };
-    const selfLine = el('div', 'entry-selfline');
-    selfLine.appendChild(el('span', '', 'あなた: 4ジャンル平均 '));
-    selfLine.appendChild(el('span', 'num', String(divisionSelfValue('overall').value)));
-    selfLine.appendChild(el('span', '', '　演技構成 '));
-    selfLine.appendChild(el('span', 'num', String(state.composition)));
-    $('#entry-divisions').replaceChildren(selfLine, policySelector(), enter, skip);
+    const w = DT.contest.worldsOutlook(state, wc);
+    const rows = [gateRow('相手の平均', w.fieldMean, w.entrants + '人・ばらつき大')];
+    if (w.kingName) rows.push(gateRow('王者 ' + w.kingName, w.kingMean, 'この大会の基準'));
+    rows.push(gateBar('あなたの素点', w.raw, w.kingMean ? [w.fieldMean, w.kingMean] : [w.fieldMean]));
+    rows.push(el('div', 'gate-legend', '縦線は 相手の平均 と 王者の目安（ミス減点の前の素点で比べている）'));
+    const gate = gateBox('worlds', '相手の格', w.tier, rows,
+      '出場しても能力・やる気は下がらない。順位に応じてポイントが入る（最下位は0pt）。');
+    const choices = el('div', 'gate-choices');
+    choices.append(enter, skip);
+    $('#entry-divisions').replaceChildren(gate, policySelector(), choices);
+    $('#entry-divisions').classList.add('gate-layout');
     $('#btn-entry-go').classList.add('hidden');
     show('#screen-entry');
   }
@@ -2223,7 +2272,7 @@
   // --- ジャグリング全国大会予選（9月）: 参加/不参加を選ぶ ---
   function renderJjfQualifier(jq) {
     $('#entry-title').textContent = jq.name + '（9月）';
-    $('#entry-hint').textContent = 'ジャグリング全国大会に挑戦しますか？ 全パラメータがバランス良く高いほど予選を突破できます。';
+    $('#entry-hint').textContent = 'ジャグリング全国大会に挑戦しますか？ 4ジャンルの習熟と演技構成が、どれも高いほど突破できます。';
     const join = el('button', 'primary', '参加する');
     join.onclick = () => {
       const q = DT.contest.jjfQualify(state);
@@ -2244,12 +2293,27 @@
     };
     const skip = el('button', '', '参加しない');
     skip.onclick = () => finishTurn(pendingMessages, null);
-    const selfLine = el('div', 'entry-selfline');
-    selfLine.appendChild(el('span', '', 'あなた: 4ジャンル平均 '));
-    selfLine.appendChild(el('span', 'num', String(divisionSelfValue('overall').value)));
-    selfLine.appendChild(el('span', '', '　演技構成 '));
-    selfLine.appendChild(el('span', 'num', String(state.composition)));
-    $('#entry-divisions').replaceChildren(selfLine, join, skip);
+    const o = DT.contest.jjfOutlook(state);
+    const ticks = [o.half.min, o.sure.min];
+    const rows = o.items.map(it => gateBar(it.label, it.value, ticks));
+    rows.push(gateBar('平均', o.avg, [o.half.avg, o.sure.avg], 'is-total'));
+    // 項目ごとの線(40/50)と平均の線(50/60)は位置が違うので、凡例に数字まで書く
+    rows.push(el('div', 'gate-legend', '縦線は 五分ライン と 確実ライン（各項目は'
+      + o.half.min + '／' + o.sure.min + '、平均は' + o.half.avg + '／' + o.sure.avg + '）'));
+    let advice;
+    if (o.tier === 'sure') advice = '確実に突破できる。';
+    else if (o.tier === 'half') advice = 'いまは五分。' + o.weakest.label + 'を' + o.sure.min
+      + '、平均を' + o.sure.avg + 'まで上げると確実になる。';
+    else if (o.min < o.half.min) advice = 'いちばん低い' + o.weakest.label + 'が' + o.weakest.value
+      + '。五分ライン' + o.half.min + 'に届いていないので、まずここを上げる。';
+    else advice = '最低ラインは越えている。平均が' + o.avg + 'で、五分ライン' + o.half.avg + 'に届いていない。';
+    const note = advice + '　突破すれば +' + DT.DATA.JJF.finalistPoints
+      + 'pt とやる気アップ。敗退するとやる気が下がる。';
+    const gate = gateBox('jjf', '突破の見立て', o.tier, rows, note);
+    const choices = el('div', 'gate-choices');
+    choices.append(join, skip);
+    $('#entry-divisions').replaceChildren(gate, choices);
+    $('#entry-divisions').classList.add('gate-layout');
     $('#btn-entry-go').classList.add('hidden');
     show('#screen-entry');
   }
@@ -2270,6 +2334,7 @@
 
   // --- エントリー選択 ---
   function renderEntry(contest) {
+    $('#entry-divisions').classList.remove('gate-layout');
     $('#btn-entry-go').classList.remove('hidden');
     const max = DT.contest.maxEntries(state.turn);
     entrySelection = [];

@@ -693,4 +693,128 @@ test('演技方針: 難易度項の無い部門(静岡パフォーマンス)は�
   assert.ok(DT.contest.missRate(s, 'performance', 'attack') > DT.contest.missRate(s, 'performance', 'normal'));
 });
 
+test('見立て: jjfOutlook の判定は jjfQualify と一致する', () => {
+  const jjf = DT.DATA.JJF;
+  const cases = [
+    { value: jjf.passSure.avg, tier: 'sure' },
+    { value: jjf.passHalf.avg, tier: 'half' },
+    { value: jjf.passHalf.min - 1, tier: 'none' }
+  ];
+  cases.forEach(({ value, tier }) => {
+    const s = allFifty();
+    DT.DATA.GENRES.forEach(g => setGenreAvg(s, g.id, value));
+    s.composition = value;
+    const before = JSON.stringify(s);
+    const o = DT.contest.jjfOutlook(s);
+    const q = DT.contest.jjfQualify(s, () => 0.4);
+    assert.strictEqual(o.tier, tier);
+    assert.deepStrictEqual({ tier: o.tier, avg: o.avg, min: o.min },
+      { tier: q.tier, avg: q.avg, min: q.min });
+    assert.strictEqual(o.avg, value);
+    assert.strictEqual(o.min, value);
+    assert.deepStrictEqual(o.weakest, { label: DT.DATA.GENRES[0].label, value });
+    assert.deepStrictEqual(o.sure, jjf.passSure);
+    assert.deepStrictEqual(o.half, jjf.passHalf);
+    assert.strictEqual(JSON.stringify(s), before, '見立ても予選判定もstateを変更しない');
+  });
+  const s = allFifty();
+  s.composition = 39.9;
+  const o = DT.contest.jjfOutlook(s);
+  assert.deepStrictEqual(o.weakest, { label: '演技構成', value: 39.9 });
+  assert.strictEqual(o.avg, 48);
+  assert.strictEqual(o.min, 39.9);
+  assert.strictEqual(o.tier, 'none');
+});
+
+test('見立て: jjfOutlook は5項目を返す', () => {
+  // 全項目が同じ値では、欠落やラベルと値の取り違えを見逃すので別々の値にする。
+  [25.3, 75.8].forEach(composition => {
+    const s = allFifty();
+    DT.DATA.GENRES.forEach((g, i) => setGenreAvg(s, g.id, 32.1 + i * 11.3));
+    s.composition = composition;
+    const o = DT.contest.jjfOutlook(s);
+    const expected = DT.DATA.GENRES.map(g => ({ label: g.label, value: DT.contest.genreAvg(s, g.id) }))
+      .concat([{ label: '演技構成', value: composition }]);
+    assert.strictEqual(o.items.length, 5);
+    assert.deepStrictEqual(o.items, expected, '4ジャンル＋演技構成を順に返す');
+    const minimum = Math.min(...o.items.map(it => it.value));
+    assert.strictEqual(o.weakest, o.items.find(it => it.value === minimum));
+    assert.strictEqual(o.min, minimum);
+    const average = o.items.reduce((sum, it) => sum + it.value, 0) / o.items.length;
+    assert.strictEqual(o.avg, Math.round(average * 10) / 10, '平均は既存の小数1桁丸めと一致する');
+  });
+});
+
+test('見立て: jjfQualify の乱数消費は変わらない', () => {
+  [
+    { value: DT.DATA.JJF.passSure.avg, tier: 'sure', calls: 0 },
+    { value: DT.DATA.JJF.passHalf.avg, tier: 'half', calls: 1 },
+    { value: DT.DATA.JJF.passHalf.min - 1, tier: 'none', calls: 0 }
+  ].forEach(({ value, tier, calls }) => {
+    [0.49, 0.5].forEach(first => {
+      const s = allFifty();
+      DT.DATA.GENRES.forEach(g => setGenreAvg(s, g.id, value));
+      s.composition = value;
+      let consumed = 0;
+      const sequence = [first, 0.91];
+      const rng = () => sequence[consumed++];
+      const q = DT.contest.jjfQualify(s, rng);
+      assert.strictEqual(q.tier, tier);
+      assert.strictEqual(consumed, calls, tier + 'の乱数消費回数');
+      assert.strictEqual(q.passed, tier === 'sure' || (tier === 'half' && first < 0.5));
+      assert.strictEqual(rng(), sequence[calls], '次の乱数の位置も変えない');
+    });
+  });
+});
+
+test('見立て: worldsOutlook は実装と同じ式で出す', () => {
+  const round1 = v => Math.round(v * 10) / 10;
+  const lv = DT.contest.LEVELS.worlds;
+  const scale = DT.DATA.SCORING.scale;
+  const king = DT.DATA.RIVALS.find(r => r.contests.includes('worlds'));
+  const s = allFifty();
+  const before = JSON.stringify(s);
+  const random = Math.random;
+  Math.random = () => { throw new Error('見立てで乱数を使わない'); };
+  try {
+    DT.DATA.WORLDS_TURNS.forEach(turn => {
+      const wc = DT.contest.worldsContestForTurn(turn);
+      const year = Math.ceil(turn / 12);
+      const w = DT.contest.worldsOutlook(s, wc);
+      assert.strictEqual(w.fieldMean, round1(scale.base + (lv.base + lv.growth * (year - 1)) * scale.mult));
+      assert.strictEqual(w.kingName, king.name);
+      assert.strictEqual(w.kingMean, round1(scale.base + (king.base + king.growth * (year - 1)) * scale.mult));
+      assert.strictEqual(w.raw, round1(Object.values(DT.contest.breakdown(s, 'overall')).reduce((a, v) => a + v, 0)));
+      assert.strictEqual(w.entrants, lv.entrants);
+      assert.strictEqual(w.sd, lv.sd);
+    });
+    DT.contest.jjfOutlook(s);
+    assert.strictEqual(JSON.stringify(s), before, '見立てはstateを変更しない');
+    // 実際のbreakdownで境界ちょうど／0.1点手前の素点になる能力値を作る。
+    const wc = DT.contest.worldsContestForTurn(DT.DATA.WORLDS_TURNS[0]);
+    const fieldMean = DT.contest.worldsOutlook(s, wc).fieldMean;
+    const targets = [
+      { raw: fieldMean, tier: 'sure' },
+      { raw: round1(fieldMean - 0.1), tier: 'half' },
+      { raw: round1(fieldMean - lv.sd), tier: 'half' },
+      { raw: round1(fieldMean - lv.sd - 0.1), tier: 'none' }
+    ];
+    targets.forEach(({ raw, tier }) => {
+      const candidate = allFifty();
+      let found = false;
+      for (let tenth = 0; tenth <= 1000; tenth++) {
+        candidate.composition = tenth / 10;
+        const total = round1(Object.values(DT.contest.breakdown(candidate, 'overall')).reduce((a, v) => a + v, 0));
+        if (total === raw) { found = true; break; }
+      }
+      assert.ok(found, raw + '点の境界用stateが必要');
+      const w = DT.contest.worldsOutlook(candidate, wc);
+      assert.strictEqual(w.raw, raw);
+      assert.strictEqual(w.tier, tier, raw + '点の境界判定');
+    });
+  } finally {
+    Math.random = random;
+  }
+});
+
 summary();

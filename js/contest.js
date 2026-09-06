@@ -360,6 +360,23 @@
     return { turn, type: 'worlds', name: year + '年 世界大会' };
   }
 
+  // 世界大会の見立て（rngを使わない）。相手の平均・王者の目安は runDivision と同じ式から出す。
+  // raw は breakdown の合計＝ミス減点・審査ぶれの前の素点（演技方針は通常）。
+  function worldsOutlook(state, contest) {
+    const lv = LEVELS.worlds;
+    const scale = DT.DATA.SCORING.scale;
+    const year = Math.ceil(contest.turn / 12);
+    const fieldMean = round1(scale.base + (lv.base + lv.growth * (year - 1)) * scale.mult);
+    const king = DT.DATA.RIVALS.find(r => r.contests.indexOf('worlds') >= 0) || null;
+    const kingMean = king ? round1(scale.base + (king.base + king.growth * (year - 1)) * scale.mult) : null;
+    const parts = breakdown(state, 'overall');
+    const raw = round1(Object.values(parts).reduce((a, v) => a + v, 0));
+    // 相手のばらつき1つ分(sd)以内なら「食らいつける」。sdは相手生成に使っている値そのもの。
+    const tier = raw >= fieldMean ? 'sure' : (raw >= fieldMean - lv.sd ? 'half' : 'none');
+    return { fieldMean: fieldMean, kingName: king ? king.name : null, kingMean: kingMean,
+             raw: raw, entrants: lv.entrants, sd: lv.sd, tier: tier };
+  }
+
   function worldsQualified(state, worldsTurn) {
     return state.results.some(r =>
       r.rank === 1 && (r.type === 'oidc' || r.type === 'ajdc') &&
@@ -383,20 +400,30 @@
     return { turn: turn, type: 'jjf', name: Math.ceil(turn / 12) + '年 ジャグリング全国大会決勝' };
   }
 
-  // 予選突破判定: 4ジャンル習熟＋演技構成の「平均」と「最低」で、バランス良く高いかを見る。
-  //   sure=確実突破 / half=50% / none=不可。rng未指定時はMath.random。
-  function jjfQualify(state, rng) {
-    rng = rng || Math.random;
+  // 予選の見立て（rngを使わない）。判定式は jjfQualify と共有し、画面と実際の判定がずれないようにする。
+  // weakest = いちばん低い項目（ここが min を決める＝「何を上げれば突破率が動くか」）。
+  function jjfOutlook(state) {
     const jjf = DT.DATA.JJF;
-    const params = DT.DATA.GENRES.map(g => genreAvg(state, g.id)).concat([state.composition]);
-    const avg = params.reduce((a, v) => a + v, 0) / params.length;
-    const min = Math.min.apply(null, params);
+    const items = DT.DATA.GENRES.map(g => ({ label: g.label, value: genreAvg(state, g.id) }))
+      .concat([{ label: '演技構成', value: state.composition }]);
+    const values = items.map(i => i.value);
+    const avg = values.reduce((a, v) => a + v, 0) / values.length;
+    const min = Math.min.apply(null, values);
+    const weakest = items.reduce((a, b) => (b.value < a.value ? b : a));
     let tier;
     if (avg >= jjf.passSure.avg && min >= jjf.passSure.min) tier = 'sure';
     else if (avg >= jjf.passHalf.avg && min >= jjf.passHalf.min) tier = 'half';
     else tier = 'none';
-    const passed = tier === 'sure' || (tier === 'half' && rng() < 0.5);
-    return { passed: passed, tier: tier, avg: round1(avg), min: round1(min) };
+    return { avg: round1(avg), min: round1(min), tier: tier, weakest: weakest, items: items,
+             sure: jjf.passSure, half: jjf.passHalf };
+  }
+
+  // 予選突破判定: sure=確実突破 / half=50% / none=不可。rng未指定時はMath.random。
+  function jjfQualify(state, rng) {
+    rng = rng || Math.random;
+    const o = jjfOutlook(state);
+    const passed = o.tier === 'sure' || (o.tier === 'half' && rng() < 0.5);
+    return { passed: passed, tier: o.tier, avg: o.avg, min: o.min };
   }
 
   // 決勝(10人): プレイヤーは総合スコアで争う。上位3名のみ追加ポイント。決勝進出の10ptは予選側で付与済み。
@@ -435,6 +462,7 @@
     maxEntries, runAll, contestForTurn, worldsContestForTurn, worldsQualified,
     rivalScore, LEVELS, buildStandings,
     isGenreUnlocked, newlyUnlockedGenres, nextUnlockTarget,
-    jjfQualifierForTurn, jjfFinalForTurn, jjfQualify, runJjfFinal
+    jjfQualifierForTurn, jjfFinalForTurn, jjfQualify, runJjfFinal,
+    jjfOutlook, worldsOutlook
   };
 })(typeof window !== 'undefined' ? window : globalThis);

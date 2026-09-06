@@ -1278,6 +1278,11 @@ table.results tr.me-row { color: var(--coral-deep); font-weight: 800; }
 
 /* ---------- 大会エントリー: 下寄せ・均等サイズ・チェックボックス ---------- */
 #entry-divisions { margin-top: 4px; display: flex; flex-direction: column; gap: 8px; }
+#entry-divisions.gate-layout { flex: 1; min-height: 0; }
+#entry-divisions.gate-layout .gate-choices { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 6px; }
+/* この2画面では固定CTA(#btn-entry-go)を使わない。空の .cta-wrap が余白(28px)を残して
+   画面をはみ出させるため、丸ごと隠す（2026-09-07 実測: 844pxに対し852pxになっていた） */
+#entry-divisions.gate-layout ~ .cta-wrap { display: none; }
 .entry-empty { font-size: .72rem; font-weight: 800; color: var(--coral-deep); text-align: center; padding: 2px 0; }
 #entry-divisions .entry-option {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
@@ -1300,7 +1305,32 @@ table.results tr.me-row { color: var(--coral-deep); font-weight: 800; }
 .entry-self { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
 .entry-self-val { font-size: .78rem; font-weight: 800; color: var(--ink); }
 .entry-self-note { font-size: .7rem; font-weight: 700; color: var(--ink-soft); }
-.entry-selfline { font-size: .75rem; font-weight: 800; color: var(--ink); padding: 2px 2px 6px; }
+/* ---------- 出る／出ないを決める「見立てカード」（2026-09-07） ---------- */
+.gate-box { margin-bottom: 10px; }
+.gate-verdict {
+  align-self: flex-start;
+  display: inline-block; margin: 2px 0 8px; padding: 3px 12px; border-radius: 999px;
+  border: 2px solid var(--ink); font-size: .95rem; font-weight: 800; color: var(--ink);
+}
+.gate-verdict.is-sure { background: var(--sun); }
+.gate-verdict.is-half { background: #d1f4ef; }
+.gate-verdict.is-none { background: #ffe1d9; }
+.gate-row {
+  display: grid; grid-template-columns: 1fr 3.2em 8.2em; align-items: baseline; gap: 8px;
+  padding: 3px 0; border-top: 2px dotted #dfe4f2;
+}
+.gate-k { font-size: .78rem; font-weight: 800; color: var(--ink); }
+.gate-v { font-size: 1.05rem; font-weight: 800; color: var(--ink); text-align: right; }
+.gate-need { font-size: .7rem; font-weight: 700; color: var(--ink-soft); text-align: right; }
+.gate-note { margin-top: 8px; font-size: .75rem; font-weight: 700; color: var(--ink-soft); line-height: 1.45; }
+.gate-bar { display: grid; grid-template-columns: 4.9em 1fr 2.6em; align-items: center; gap: 8px; min-height: 26px; }
+.gate-bl { white-space: nowrap; }   /* ラベルは折り返さない（「5項目の平均」が2行になっていた） */
+.gate-bl { font-size: .78rem; font-weight: 800; color: var(--ink); }
+.gate-bv { font-size: .95rem; font-weight: 800; color: var(--ink); text-align: right; }
+.gate-gauge { position: relative; }
+.gate-tick { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); opacity: .38; }
+.gate-bar.is-total { border-top: 2px dotted #dfe4f2; margin-top: 4px; padding-top: 6px; }
+.gate-legend { font-size: .7rem; font-weight: 700; color: var(--ink-soft); padding-top: 6px; }
 .policy-sub { font-size: .7rem; font-weight: 700; color: var(--ink-soft); }
 
 /* ============================================================

@@ -421,4 +421,44 @@ test('Wave2: 得意技が乗るマスは補正量まで出す', () => {
   assert.doesNotMatch(grid[1], /'tg-fav',\s*'得意技'\s*\)/, '量の無い「得意技」だけの印に戻さない');
 });
 
+test('見立て: 部門の無い2画面には見立てカードを出す', () => {
+  ['renderJjfQualifier', 'renderWorldsEntry'].forEach(name => {
+    const body = app.match(new RegExp('function ' + name + '\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\n  \\}'));
+    assert.ok(body, name + 'の描画関数が必要');
+    assert.match(body[1], /\bgateBox\(/, name + 'で見立てカードを描く');
+  });
+  assert.doesNotMatch(app, /entry-selfline/);
+  assert.doesNotMatch(css, /entry-selfline/);
+});
+
+test('見立て: 予選は5項目のバーを出す', () => {
+  const body = app.match(/function renderJjfQualifier\([^)]*\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(body, '予選の描画関数が必要');
+  assert.match(body[1], /const ticks\s*=\s*\[o\.half\.min,\s*o\.sure\.min\]/,
+    '項目ごとの目盛りは見立ての最低ラインから取る');
+  assert.match(body[1], /o\.items\.map\(it\s*=>\s*gateBar\(it\.label,\s*it\.value,\s*ticks\)\)/,
+    '5項目すべてのラベル・値と目盛りをバーへ渡す');
+  // ラベル文言は変わりうるので固定しない。見るのは「平均の目盛りが平均用のラインから来ているか」
+  assert.match(body[1], /gateBar\('[^']*',\s*o\.avg,\s*\[o\.half\.avg,\s*o\.sure\.avg\],\s*'is-total'\)/,
+    '平均のバーは平均用のライン(50/60)を目盛りにする');
+  // 項目の線(40/50)と平均の線(50/60)は位置が違うので、凡例に数字を書く
+  assert.match(body[1], /gate-legend[\s\S]*?o\.half\.min[\s\S]*?o\.sure\.min[\s\S]*?o\.half\.avg[\s\S]*?o\.sure\.avg/,
+    '凡例に4つのラインの数値を出す');
+});
+
+test('見立て: 下寄せは部門選択に持ち込まない', () => {
+  ['renderJjfQualifier', 'renderWorldsEntry'].forEach(name => {
+    const body = app.match(new RegExp('function ' + name + '\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\n  \\}'));
+    assert.ok(body, name + 'の描画関数が必要');
+    assert.match(body[1], /\$\('#entry-divisions'\)\.classList\.add\('gate-layout'\)/);
+    assert.match(body[1], /el\('div',\s*'gate-choices'\)/);
+  });
+  const entry = app.match(/function renderEntry\([^)]*\)\s*\{([\s\S]*?)\n  \}/);
+  assert.ok(entry, '部門選択の描画関数が必要');
+  assert.match(entry[1], /\$\('#entry-divisions'\)\.classList\.remove\('gate-layout'\)/,
+    '予選・世界大会から戻っても下寄せを残さない');
+  assert.match(css, /#entry-divisions\.gate-layout\s*\{\s*flex:\s*1;/);
+  assert.match(css, /#entry-divisions\.gate-layout \.gate-choices\s*\{\s*margin-top:\s*auto;/);
+});
+
 summary();
